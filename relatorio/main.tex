@@ -1,0 +1,467 @@
+\documentclass{article}
+
+\input{setup}
+\usepackage{pgfplots} % remova se o setup.tex ja carregar o pgfplots
+\pgfplotsset{compat=1.17}
+
+\begin{document}
+
+\CAPA{Trabalho Prático II: Ordenação Externa}{BCC203 - Estrutura de Dados II}{Davi Samuel Machado Soares, Luisa Rafaela Silva Reis, Roberta Teixeira do Nascimento e Luiza Oliveira Fonseca}{Guilherme Tavares de Assis}
+
+
+\section{Introdução}
+
+Este trabalho compara o desempenho de três métodos de ordenação externa: (1) intercalação balanceada de vários caminhos com $2f$ fitas, (2) intercalação balanceada de vários caminhos com $f+1$ fitas, ambas usando seleção por substituição na geração dos blocos ordenados, e (3) Quicksort externo. Para cada método são medidos o número de transferências de leitura (memória externa para interna), o número de transferências de escrita (memória interna para externa), o número de comparações entre notas e o tempo de execução.
+
+Para este trabalho é necessário entregar o código em C e um relatório referente ao que foi desenvolvido. Os três métodos seguem a descrição de \cite{ziviani}; a seleção por substituição e a análise do tamanho dos blocos gerados por ela seguem \cite{knuth1998}, e a análise de custo usa também \cite{cormen2009}.
+
+A codificação foi feita em C, usando somente a biblioteca padrão e a função POSIX \texttt{clock\_gettime}, sem bibliotecas adicionais.
+
+\subsection{Especificações do problema}
+
+A base de dados é o arquivo texto \texttt{PROVAO.TXT}, com as notas de 471.705 alunos do Ensino Superior que fizeram o Provão em 2003. Cada linha tem a inscrição do aluno (colunas 1 a 8), a nota (colunas 10 a 14, entre 0,0 e 100,0), o estado (colunas 16 e 17), a cidade (colunas 19 a 68) e o curso (colunas 70 a 99). O programa converte o texto em um arquivo binário de registros de 104 bytes (Código~\ref{lst:registro}).
+
+\begin{lstlisting}[caption={Definição do registro (registro.h).},label={lst:registro},language=C]
+typedef struct {
+    long  inscricao;
+    float nota;
+    char  estado[3];
+    char  cidade[51];
+    char  curso[31];
+    union {
+        int congelado;   /* metodo 1 */
+        int marcado;     /* metodo 2 */
+    };
+} Registro;
+\end{lstlisting}
+
+Devem ser ordenadas ascendentemente, pela nota, as $n$ primeiras linhas do arquivo, com $n$ igual a 100, 200, 2.000, 20.000, 200.000 e 471.705, em três situações de ordem inicial: arquivo ordenado ascendentemente, ordenado descendentemente e desordenado aleatoriamente (a ordem original do arquivo). As restrições de cada método estão na Tabela~\ref{tab:restricoes}.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{|l|r|l|}
+        \hline\hline
+        Método & Memória interna & Fitas \\\hline
+        1 -- Intercalação $2f$ & 10 registros & 20 (10 de entrada e 10 de saída) \\
+        2 -- Intercalação $f+1$ & 19 registros & 20 (19 de entrada e 1 de saída) \\
+        3 -- Quicksort externo & 10 registros & o próprio arquivo \\\hline\hline
+    \end{tabular}
+    \caption{\label{tab:restricoes}Restrições de memória e de fitas de cada método.}
+\end{table}
+
+\subsection{Considerações iniciais}
+
+Algumas ferramentas foram utilizadas durante a criação deste projeto:
+
+\begin{itemize}
+  \item Ambiente de desenvolvimento do código fonte: Visual Studio Code.
+  \item Linguagem utilizada: C.
+  \item Compilador: \texttt{gcc}, automatizado por \texttt{Makefile}.
+  \item Ambiente de desenvolvimento da documentação: Overleaf \LaTeX. \footnote{Disponível em \url{https://www.overleaf.com/}}
+\end{itemize}
+
+\subsection{Ferramentas utilizadas}
+Algumas ferramentas foram utilizadas para testar a implementação, como:
+\begin{itemize}
+    \item[-] \texttt{experimentos.sh}: script de shell que executa o programa para as 54 combinações de método, quantidade e situação e grava as métricas em \texttt{resultados.csv}.
+    \item[-] Script de conferência (Python): para cada execução, verifica se o arquivo de saída está em ordem crescente de nota e se contém exatamente as mesmas inscrições do arquivo de entrada.
+\end{itemize}
+
+\subsection{Especificações da máquina}
+\label{sec:maquina}
+A máquina onde o desenvolvimento e os testes foram realizados possui a seguinte configuração:
+\begin{itemize}
+    \item[-] Processador: Apple M4 (10 núcleos).
+    \item[-] Memória RAM: 16 GB.
+    \item[-] Armazenamento: SSD.
+    \item[-] Sistema Operacional: macOS.
+\end{itemize}
+
+\subsection{Instruções de compilação e execução}
+
+Para a compilação do projeto, basta digitar:
+
+\begin{tcolorbox}[title=Compilando o projeto,width=\linewidth]
+    \texttt{make}
+\end{tcolorbox}
+
+O \texttt{Makefile} compila cada módulo (\texttt{main.c}, \texttt{preparo.c}, \texttt{int2f.c}, \texttt{int\_f1.c} e \texttt{quicksort.c}) e gera o executável \texttt{ordena}, com as seguintes opções:
+\begin{itemize}
+    \item [-] \emph{-Wall -Wextra}: para mostrar todos os possíveis \emph{warnings} do código.
+    \item [-] \emph{-O2}: otimização do código gerado, já que o objetivo é medir desempenho.
+\end{itemize}
+
+Para a execução do programa basta digitar:
+\begin{tcolorbox}[title=Executando o programa,width=\linewidth]
+    \texttt{./ordena \textless metodo\textgreater{} \textless quantidade\textgreater{} \textless situacao\textgreater{} [-P]}
+\end{tcolorbox}
+
+Onde:
+\begin{itemize}
+    \item [-] \texttt{metodo}: 1 (intercalação balanceada $2f$), 2 (intercalação balanceada $f+1$) ou 3 (Quicksort externo);
+    \item [-] \texttt{quantidade}: número de alunos a ordenar (1 a 471.705);
+    \item [-] \texttt{situacao}: 1 (ascendente), 2 (descendente) ou 3 (aleatória);
+    \item [-] \texttt{-P} (opcional): mostra na tela os dados de entrada e o resultado da ordenação, fora de qualquer medição.
+\end{itemize}
+
+Toda execução termina mostrando as leituras, as escritas, as comparações e o tempo. O resultado ordenado é gravado em \texttt{resultado\_metodo\textit{N}.txt}, no mesmo formato do \texttt{PROVAO.TXT}. Número errado de argumentos, método, quantidade ou situação inválidos, quantidade maior que o tamanho do arquivo, opção desconhecida no lugar de \texttt{-P}, ausência do \texttt{PROVAO.TXT} e erros de abertura ou criação de arquivos geram mensagens de erro específicas, seguidas das instruções de uso.
+
+\clearpage
+\section{Desenvolvimento}
+
+O projeto foi organizado em um módulo por método, com módulos comuns para a linha de comando e para a preparação dos arquivos (Tabela~\ref{tab:arquivos}).
+
+\begin{table}[!htb]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline\hline
+        Arquivo & Responsabilidade \\\hline
+        \texttt{main.c} & Linha de comando, validação, execução e quadro de resultados \\
+        \texttt{preparo.c/h} & Conversão do \texttt{PROVAO.TXT} e geração dos arquivos ordenados \\
+        \texttt{registro.h} & Registro único usado pelos três métodos \\
+        \texttt{int2f.c/h} & Método 1 e estrutura de métricas \\
+        \texttt{int\_f1.c/h} & Método 2 \\
+        \texttt{quicksort.c/h} & Método 3 e cópia dos $n$ registros da situação \\
+        \texttt{experimentos.sh} & Execução dos 54 experimentos \\\hline\hline
+    \end{tabular}
+    \caption{\label{tab:arquivos}Organização dos arquivos do projeto.}
+\end{table}
+
+\subsection{Preparação dos arquivos}
+
+Na primeira execução, \texttt{preparo.c} converte o \texttt{PROVAO.TXT} em \texttt{binario.bin} (situação aleatória). Em seguida copia esse arquivo, ordena a cópia com o próprio Quicksort externo e grava \texttt{crescente.bin} (situação ascendente); lendo esse arquivo de trás para frente, grava \texttt{decrescente.bin} (situação descendente). Nas execuções seguintes os três arquivos já existem e são reaproveitados.
+
+Em cada execução, os $n$ primeiros registros do arquivo da situação escolhida são copiados para \texttt{provaoOrdenar.dat}, que é o arquivo efetivamente ordenado. Essa cópia não entra nas métricas.
+
+\subsection{Contagem das métricas}
+
+\begin{itemize}
+    \item \textbf{Leituras}: cada registro lido de um arquivo ou fita para a memória interna incrementa \texttt{transferencias\_leitura} (nos métodos 1 e 2, pela função \texttt{ler\_registro\_binario}; no método 3, em \texttt{LeSup} e \texttt{LeInf}).
+    \item \textbf{Escritas}: cada registro gravado em um arquivo ou fita incrementa \texttt{transferencias\_escrita}.
+    \item \textbf{Comparações}: só as comparações entre notas, o campo de ordenação. Comparações do indicador de congelamento ou de índices não são contadas.
+    \item \textbf{Tempo}: \texttt{clock\_gettime(CLOCK\_MONOTONIC)}, do início ao fim da ordenação. A exibição do \texttt{-P}, a preparação do arquivo e a gravação do arquivo texto de resultado ficam de fora.
+\end{itemize}
+
+\begin{lstlisting}[caption={Estrutura de métricas (int2f.h) e relógio (int2f.c).},label={lst:metricas},language=C]
+typedef struct {
+    long int transferencias_leitura;
+    long int transferencias_escrita;
+    long int comparacoes;   /* so comparacoes entre notas */
+    double tempo_execucao;  /* em segundos */
+} Metricas;
+
+double tempoAtual(void) {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t.tv_sec + t.tv_nsec / 1e9;
+}
+\end{lstlisting}
+
+\subsection{Seleção por substituição}
+
+Os métodos 1 e 2 geram os blocos ordenados por seleção por substituição \cite{knuth1998}, com um \emph{heap} mínimo do tamanho da memória interna (10 registros no método 1 e 19 no método 2). O menor registro do \emph{heap} é gravado na fita e substituído pelo próximo registro da entrada. Se o novo registro for menor que o que acabou de sair, ele pertence ao próximo bloco e fica marcado (congelado), sendo considerado maior que qualquer registro não marcado. Quando todos os registros do \emph{heap} estão marcados, o bloco termina: as marcas são retiradas, o \emph{heap} é reconstruído e o próximo bloco vai para a próxima fita (Código~\ref{lst:selecao}).
+
+\begin{lstlisting}[caption={Laço da seleção por substituição (int2f.c, resumido).},label={lst:selecao},language=C]
+while (tam_heap > 0) {
+    Registro menor = heap[0];
+    fwrite(&menor, sizeof(Registro), 1, fitas_saida[fita_atual]);
+    m->transferencias_escrita++;
+    if (ler_registro_binario(arq_entrada, &novo, m)) {
+        m->comparacoes++;
+        novo.congelado = (novo.nota < menor.nota);
+        congelados += novo.congelado;
+        heap[0] = novo;
+    } else heap[0] = heap[--tam_heap];  /* entrada acabou */
+    if (tam_heap > 0) refaz_heap(heap, 0, tam_heap - 1, m);
+    if (congelados == tam_heap && tam_heap > 0) {
+        /* fim do bloco: descongela e troca de fita */
+        fita_atual = (fita_atual + 1) % num_fitas_saida;
+        ...
+    }
+}
+\end{lstlisting}
+
+Em média, a seleção por substituição gera blocos com o dobro do tamanho da memória \cite{knuth1998}: cerca de 20 registros no método 1 e 38 no método 2, para o arquivo aleatório. Com o arquivo ascendente, cada registro novo é sempre maior que o último gravado, nada é congelado e é gerado um único bloco com o arquivo inteiro.
+
+\subsection{Método 1 -- Intercalação balanceada de vários caminhos ($2f$ fitas)}
+
+As 20 fitas são arquivos temporários (\texttt{fita\_0.bin} a \texttt{fita\_19.bin}). A geração grava os blocos alternadamente nas fitas 10 a 19. Cada passada de intercalação lê as 10 fitas de entrada e grava nas 10 de saída; depois os papéis se invertem (as fitas de saída são reabertas vazias com \texttt{freopen}), até sobrar um só bloco.
+
+A intercalação usa um \emph{heap} de 10 posições, um registro por fita de entrada, guardando também a fita de origem. Ao gravar o menor, o programa lê o próximo registro da mesma fita; se ele for menor que o gravado, o bloco daquela fita terminou, e o registro fica congelado até todas as fitas terminarem o bloco atual. Então o bloco de saída é fechado e o próximo vai para a próxima fita de saída. Assim a memória interna nunca guarda mais que 10 registros.
+
+\subsection{Método 2 -- Intercalação balanceada de vários caminhos ($f+1$ fitas)}
+
+Aqui $f = 19$: são 19 fitas de entrada e 1 de saída (\texttt{fita\_f1\_0.bin} a \texttt{fita\_f1\_19.bin}). A geração grava os blocos alternadamente nas fitas 0 a 18. Para não depender da comparação de notas para achar o fim de cada bloco, o último registro de cada bloco é gravado com o campo \texttt{marcado} igual a 1, o que não custa nenhuma transferência extra.
+
+Cada passada intercala o $i$-ésimo bloco das 19 fitas de entrada em um único bloco, gravado na fita 19, até as fitas de entrada se esgotarem. Se a fita de saída ficou com mais de um bloco, esses blocos são redistribuídos alternadamente nas 19 fitas de entrada e uma nova passada começa (Código~\ref{lst:f1}). Essa redistribuição é a diferença em relação ao método 1: cada passada (exceto a última) custa duas leituras e duas escritas de cada registro, uma na intercalação e outra na redistribuição, em troca de intercalar 19 caminhos de uma vez em vez de 10.
+
+\begin{lstlisting}[caption={Passadas do método 2 (int\_f1.c, resumido).},label={lst:f1},language=C]
+while (total > 1) {
+    int novos = 0;
+    for (;;) {  /* um bloco de cada fita que ainda tem bloco */
+        int part[F_CAMINHOS], np = 0;
+        for (int i = 0; i < f; i++)
+            if (blocos[i] > 0) { part[np++] = i; blocos[i]--; }
+        if (np == 0) break;
+        intercala_um_bloco(fitas, part, np, fitas[FITA_SAIDA], m);
+        novos++;
+    }
+    total = novos;
+    if (total == 1) { fita_final = FITA_SAIDA; break; }
+    redistribui(fitas, f, blocos, total, m);  /* volta para as f fitas */
+}
+\end{lstlisting}
+
+\subsection{Método 3 -- Quicksort externo}
+
+O Quicksort externo \cite{ziviani} ordena o próprio arquivo, usando três ponteiros para ele: \texttt{ArqLi} (leitura inferior), \texttt{ArqEi} (escrita inferior) e \texttt{ArqLEs} (leitura e escrita superior). A área de memória interna guarda até 10 registros ordenados, que funcionam como pivô.
+
+A partição lê os registros alternadamente das duas extremidades do subarquivo. Enquanto a área não está cheia, o registro lido entra nela. Depois disso, um registro maior que o limite superior vai direto para a direita, um menor que o limite inferior vai direto para a esquerda, e os demais entram na área, que devolve o seu menor ou o seu maior registro para o lado com menos elementos, atualizando o limite correspondente. Para não sobrescrever registros ainda não lidos, a leitura é feita do lado em que o ponteiro de escrita alcançou o de leitura. No fim, os registros da área são gravados no meio, já na posição final, e a recursão ordena primeiro o subarquivo menor (Código~\ref{lst:qs}).
+
+\begin{lstlisting}[caption={Recursão do Quicksort externo (quicksort.c).},label={lst:qs},language=C]
+void QuicksortExterno(FILE **ArqLi, FILE **ArqEi, FILE **ArqLEs,
+                      int Esq, int Dir) {
+    int i, j;
+    TipoArea Area;
+    if (Dir - Esq < 1) return;
+    FAVazia(&Area);
+    Particao(ArqLi, ArqEi, ArqLEs, &Area, Esq, Dir, &i, &j);
+    if (i - Esq < Dir - j) {   /* subarquivo menor primeiro */
+        QuicksortExterno(ArqLi, ArqEi, ArqLEs, Esq, i);
+        QuicksortExterno(ArqLi, ArqEi, ArqLEs, j, Dir);
+    } else {
+        QuicksortExterno(ArqLi, ArqEi, ArqLEs, j, Dir);
+        QuicksortExterno(ArqLi, ArqEi, ArqLEs, Esq, i);
+    }
+}
+\end{lstlisting}
+
+Como os três ponteiros abrem o mesmo arquivo e cada um tem o seu \emph{buffer} da biblioteca padrão, os \emph{buffers} são descarregados (\texttt{fflush}) no início e no fim de cada partição. Sem isso, uma partição podia ler dados desatualizados da partição anterior.
+
+\clearpage
+\section{Experimentos}
+
+Foram executadas as 54 combinações de método (3), quantidade (100, 200, 2.000, 20.000, 200.000 e 471.705) e situação (ascendente, descendente e aleatória), na máquina descrita na Seção~\ref{sec:maquina}, com \texttt{gcc -O2}.
+
+\begin{itemize}
+    \item Cada combinação foi executada 5 vezes. Leituras, escritas e comparações não variaram entre as repetições, já que os algoritmos são determinísticos; o tempo mostrado nas tabelas é a média das 5 execuções.
+    \item Todas as 54 saídas foram conferidas: estão em ordem crescente de nota e contêm exatamente as mesmas inscrições da entrada.
+    \item As tabelas mostram também a razão leituras$/n$, que indica quantas vezes, em média, cada registro foi lido. Nos métodos 1 e 2 ela corresponde ao número de passadas sobre o arquivo.
+    \item Os arquivos têm no máximo 49 MB e cabem no \emph{cache} do sistema operacional, então boa parte das transferências não chega de fato ao disco. Os tempos refletem principalmente o custo das chamadas de leitura, escrita e posicionamento (\texttt{fseek}).
+\end{itemize}
+
+\clearpage
+\section{Resultados}
+
+Nas tabelas a seguir, ``Leit./$n$'' é o número de leituras dividido pela quantidade de registros, e o tempo é a média de 5 execuções, em milissegundos.
+
+\subsection{Método 1 -- Intercalação balanceada de vários caminhos ($2f$ fitas)}
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{|r|l|r|r|r|r|r|}
+        \hline\hline
+        Registros & Situação & Leituras & Escritas & Comparações & Leit./$n$ & Tempo (ms) \\\hline
+        100      & Asc.   &        100 &        100 &         294 &  1,00 &     1,102 \\
+        100      & Desc.  &        200 &        200 &         615 &  2,00 &     3,094 \\
+        100      & Aleat. &        200 &        200 &         875 &  2,00 &     1,076 \\\hline
+        200      & Asc.   &        200 &        200 &         594 &  1,00 &     0,990 \\
+        200      & Desc.  &        600 &        600 &       1.524 &  3,00 &     1,495 \\
+        200      & Aleat. &        600 &        600 &       2.359 &  3,00 &     1,603 \\\hline
+        2.000    & Asc.   &      2.000 &      2.000 &       5.994 &  1,00 &     1,186 \\
+        2.000    & Desc.  &      6.000 &      6.000 &      17.235 &  3,00 &     3,305 \\
+        2.000    & Aleat. &      6.000 &      6.000 &      28.364 &  3,00 &     3,307 \\\hline
+        20.000   & Asc.   &     20.000 &     20.000 &      59.994 &  1,00 &     5,277 \\
+        20.000   & Desc.  &     80.000 &     80.000 &     200.341 &  4,00 &    18,832 \\
+        20.000   & Aleat. &     80.000 &     80.000 &     350.152 &  4,00 &    19,205 \\\hline
+        200.000  & Asc.   &    200.000 &    200.000 &     606.027 &  1,00 &    39,084 \\
+        200.000  & Desc.  &    800.000 &    800.000 &   2.248.000 &  4,00 &   159,538 \\
+        200.000  & Aleat. &  1.000.000 &  1.000.000 &   4.100.770 &  5,00 &   204,370 \\\hline
+        471.705  & Asc.   &    471.705 &    471.705 &   1.434.312 &  1,00 &    85,562 \\
+        471.705  & Desc.  &  1.886.820 &  1.886.820 &   5.368.930 &  4,00 &   345,505 \\
+        471.705  & Aleat. &  2.830.230 &  2.830.230 &  10.894.628 &  6,00 &   574,361 \\\hline
+        \hline
+    \end{tabular}
+    \caption{\label{tab:m1}Método 1: memória de 10 registros, 10 fitas de entrada e 10 de saída.}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Leituras e escritas}: são sempre iguais, porque cada registro lido é gravado uma vez em cada passada. A razão Leit./$n$ é o número de passadas: uma de geração dos blocos mais uma para cada intercalação, ou seja, $1 + \lceil \log_{10} B \rceil$, em que $B$ é o número de blocos gerados.
+    \item \textbf{Situação ascendente}: exatamente $n$ leituras e $n$ escritas em todos os tamanhos. A seleção por substituição gera um único bloco com o arquivo inteiro e não há intercalação.
+    \item \textbf{Situação aleatória}: as passadas crescem com $\log_{10} n$: de 2 (100 registros) para 6 (471.705). Com blocos de cerca de 20 registros (o dobro da memória), 471.705 registros geram cerca de 23.600 blocos, e $\lceil \log_{10} 23.600 \rceil = 5$ intercalações.
+    \item \textbf{Situação descendente}: seria o pior caso, com blocos do tamanho da memória (10 registros), mas a partir de 200.000 registros ficou melhor que o aleatório (4 passadas contra 5 e 6). O motivo são as notas repetidas: elas têm uma casa decimal entre 0 e 100, então há no máximo 1.001 valores distintos. No arquivo descendente os registros de mesma nota ficam juntos e, como um registro só é congelado se for \emph{menor} que o último gravado, cada grupo de notas iguais estende o bloco atual. O número de blocos fica perto do número de notas distintas, e bastam 3 intercalações.
+    \item \textbf{Comparações}: no ascendente são cerca de $3n$ (o teste de congelamento e as comparações para refazer o \emph{heap}). Nas demais situações crescem com $n \log n$: de 8,8 por registro (100, aleatório) para 23,1 por registro (471.705, aleatório), já que cada passada custa cerca de $2\log_2 10$ comparações por registro no \emph{heap}.
+    \item \textbf{Tempo}: acompanha as leituras, a cerca de 0,2 $\mu$s por registro lido e gravado: 86 ms no ascendente, 346 ms no descendente e 574 ms no aleatório, com 471.705 registros. Até 2.000 registros fica em torno de 1 a 3 ms, dominado pelo custo fixo de criar e apagar as 20 fitas.
+\end{itemize}
+
+\subsection{Método 2 -- Intercalação balanceada de vários caminhos ($f+1$ fitas)}
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{|r|l|r|r|r|r|r|}
+        \hline\hline
+        Registros & Situação & Leituras & Escritas & Comparações & Leit./$n$ & Tempo (ms) \\\hline
+        100      & Asc.   &        100 &        100 &         294 &  1,00 &     0,951 \\
+        100      & Desc.  &        200 &        200 &         581 &  2,00 &     0,991 \\
+        100      & Aleat. &        200 &        200 &         803 &  2,00 &     0,954 \\\hline
+        200      & Asc.   &        200 &        200 &         594 &  1,00 &     0,893 \\
+        200      & Desc.  &        400 &        400 &       1.205 &  2,00 &     0,984 \\
+        200      & Aleat. &        400 &        400 &       1.826 &  2,00 &     1,029 \\\hline
+        2.000    & Asc.   &      2.000 &      2.000 &       5.994 &  1,00 &     1,281 \\
+        2.000    & Desc.  &      8.000 &      8.000 &      12.756 &  4,00 &     4,330 \\
+        2.000    & Aleat. &      8.000 &      8.000 &      26.089 &  4,00 &     4,587 \\\hline
+        20.000   & Asc.   &     20.000 &     20.000 &      59.994 &  1,00 &     4,537 \\
+        20.000   & Desc.  &     80.000 &     80.000 &     135.616 &  4,00 &    17,654 \\
+        20.000   & Aleat. &    120.000 &    120.000 &     304.061 &  6,00 &    28,639 \\\hline
+        200.000  & Asc.   &    200.000 &    200.000 &     617.608 &  1,00 &    39,073 \\
+        200.000  & Desc.  &    800.000 &    800.000 &   1.374.279 &  4,00 &   146,516 \\
+        200.000  & Aleat. &  1.200.000 &  1.200.000 &   3.265.368 &  6,00 &   237,358 \\\hline
+        471.705  & Asc.   &    471.705 &    471.705 &   1.469.935 &  1,00 &    83,258 \\
+        471.705  & Desc.  &  2.830.230 &  2.830.230 &   3.425.907 &  6,00 &   526,173 \\
+        471.705  & Aleat. &  3.773.640 &  3.773.640 &   7.946.859 &  8,00 &   691,955 \\\hline
+        \hline
+    \end{tabular}
+    \caption{\label{tab:m2}Método 2: memória de 19 registros, 19 fitas de entrada e 1 de saída.}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Leituras e escritas}: também são sempre iguais. Agora cada passada, exceto a última, tem duas etapas (intercalação e redistribuição), então Leit./$n = 1 + k + (k-1) = 2k$, em que $k = \lceil \log_{19} B \rceil$ é o número de intercalações. Por isso a razão é sempre par: 1 (ascendente), 2, 4, 6 ou 8.
+    \item \textbf{Situação ascendente}: igual ao método 1, um único bloco e $n$ transferências de cada tipo.
+    \item \textbf{Situação aleatória}: com 471.705 registros são gerados cerca de 12.400 blocos (de cerca de 38 registros, o dobro da memória), que precisam de 4 intercalações ($12.400 \to 654 \to 35 \to 2 \to 1$) e 3 redistribuições: $8n$ leituras, contra $6n$ do método 1.
+    \item \textbf{Situação descendente}: como no método 1, as notas repetidas reduzem o número de blocos, e o resultado ($6n$ com 471.705) fica melhor que o do aleatório.
+    \item \textbf{Comparações}: são as menores entre os métodos de intercalação nos casos não ascendentes (7,9 milhões contra 10,9 milhões do método 1 no aleatório com 471.705). Cada intercalação compara mais por registro ($2\log_2 19$ contra $2\log_2 10$), mas são menos intercalações, e a redistribuição não faz nenhuma comparação.
+    \item \textbf{Tempo}: segue as transferências, a cerca de 0,18 $\mu$s por registro lido e gravado. Por fazer mais transferências, é mais lento que o método 1 nos casos grandes: 692 ms contra 574 ms no aleatório e 526 ms contra 346 ms no descendente, com 471.705 registros. Nos tamanhos pequenos o tempo é praticamente o custo fixo de criar e apagar as 20 fitas (cerca de 1 ms).
+\end{itemize}
+
+\subsection{Método 3 -- Quicksort externo}
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{|r|l|r|r|r|r|r|}
+        \hline\hline
+        Registros & Situação & Leituras & Escritas & Comparações & Leit./$n$ & Tempo (ms) \\\hline
+        100      & Asc.   &        100 &        100 &         281 &  1,00 &     0,194 \\
+        100      & Desc.  &        100 &        100 &         537 &  1,00 &     0,217 \\
+        100      & Aleat. &        291 &        291 &       1.022 &  2,91 &     0,455 \\\hline
+        200      & Asc.   &        200 &        200 &         581 &  1,00 &     0,385 \\
+        200      & Desc.  &        200 &        200 &       1.107 &  1,00 &     0,404 \\
+        200      & Aleat. &        732 &        732 &       2.292 &  3,66 &     1,256 \\\hline
+        2.000    & Asc.   &      2.000 &      2.000 &       5.981 &  1,00 &     3,788 \\
+        2.000    & Desc.  &      2.000 &      2.000 &      10.431 &  1,00 &     3,838 \\
+        2.000    & Aleat. &     12.131 &     12.131 &      29.015 &  6,07 &    23,179 \\\hline
+        20.000   & Asc.   &     20.000 &     20.000 &      59.981 &  1,00 &    38,401 \\
+        20.000   & Desc.  &     20.000 &     20.000 &     101.370 &  1,00 &    38,054 \\
+        20.000   & Aleat. &    163.393 &    163.393 &     327.448 &  8,17 &   311,062 \\\hline
+        200.000  & Asc.   &    200.000 &    200.000 &   1.101.020 &  1,00 &   380,362 \\
+        200.000  & Desc.  &    200.000 &    200.000 &   1.000.641 &  1,00 &   380,774 \\
+        200.000  & Aleat. &  1.821.254 &  1.821.254 &   3.412.161 &  9,11 & 3.538,381 \\\hline
+        471.705  & Asc.   &    471.705 &    471.705 &   2.592.015 &  1,00 &   936,701 \\
+        471.705  & Desc.  &    471.705 &    471.705 &   2.357.650 &  1,00 &   893,726 \\
+        471.705  & Aleat. &  4.373.560 &  4.373.560 &   8.091.771 &  9,27 & 8.656,870 \\\hline
+        \hline
+    \end{tabular}
+    \caption{\label{tab:m3}Método 3: área de 10 registros.}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Leituras e escritas}: iguais entre si, porque cada registro lido numa partição é gravado de volta no mesmo subarquivo.
+    \item \textbf{Situações ascendente e descendente}: exatamente $n$ leituras e $n$ escritas em todos os tamanhos, o melhor resultado de todos os métodos no descendente. Com o arquivo ordenado, cada registro lido está fora do intervalo da área e é gravado direto na sua posição final; nenhum registro precisa ser lido de novo.
+    \item \textbf{Situação aleatória}: as leituras crescem com $n \log (n/10)$, como esperado para o Quicksort \cite{cormen2009}: de 2,9 por registro (100) para 9,3 por registro (471.705), o maior valor entre os métodos.
+    \item \textbf{Comparações}: cerca de $5n$ nos arquivos ordenados (duas comparações com os limites da área por registro, mais as inserções ordenadas na área) e cerca de $17n$ no aleatório com 471.705 registros (8,1 milhões), próximo do método 2.
+    \item \textbf{Tempo}: é o maior nos casos grandes, apesar de as transferências serem da mesma ordem dos outros métodos. Cada registro custa cerca de 2 $\mu$s, dez vezes mais que nos métodos 1 e 2. A causa é o acesso ao arquivo: \texttt{LeSup} e \texttt{EscreveMax} fazem um \texttt{fseek} antes de cada leitura ou escrita, o que descarta o \emph{buffer} da biblioteca padrão e transforma cada transferência em uma chamada ao sistema operacional; os métodos 1 e 2 leem e gravam as fitas sequencialmente e aproveitam o \emph{buffer}. Por isso, mesmo no ascendente (só $n$ leituras), o método 3 leva 937 ms, contra 86 ms do método 1. No aleatório chega a 8,7 s. Nos tamanhos pequenos, por outro lado, é o mais rápido (0,19 ms com 100 registros), porque não cria fitas.
+\end{itemize}
+
+\clearpage
+\subsection{Análise comparativa}
+
+As Figuras~\ref{fig:leituras} e \ref{fig:tempo} comparam os três métodos no arquivo aleatório, e a Tabela~\ref{tab:resumo} resume o comportamento de cada um com 471.705 registros.
+
+\begin{figure}[!htb]
+    \centering
+    \begin{tikzpicture}
+    \begin{semilogxaxis}[
+        width=0.85\linewidth, height=7cm,
+        xlabel={Número de registros}, ylabel={Leituras por registro},
+        legend pos=north west, legend style={font=\small},
+        grid=major]
+    \addplot+[mark=square*] coordinates {(100,2) (200,3) (2000,3) (20000,4) (200000,5) (471705,6)};
+    \addplot+[mark=triangle*] coordinates {(100,2) (200,2) (2000,4) (20000,6) (200000,6) (471705,8)};
+    \addplot+[mark=*] coordinates {(100,2.91) (200,3.66) (2000,6.066) (20000,8.17) (200000,9.106) (471705,9.272)};
+    \legend{1 -- Intercalação $2f$, 2 -- Intercalação $f+1$, 3 -- Quicksort externo}
+    \end{semilogxaxis}
+    \end{tikzpicture}
+    \caption{Leituras por registro (Leit./$n$), situação aleatória.}
+    \label{fig:leituras}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \begin{tikzpicture}
+    \begin{loglogaxis}[
+        width=0.85\linewidth, height=7cm,
+        xlabel={Número de registros}, ylabel={Tempo (ms)},
+        legend pos=north west, legend style={font=\small},
+        grid=major]
+    \addplot+[mark=square*] coordinates {(100,1.076) (200,1.603) (2000,3.307) (20000,19.21) (200000,204.4) (471705,574.4)};
+    \addplot+[mark=triangle*] coordinates {(100,0.9544) (200,1.029) (2000,4.587) (20000,28.64) (200000,237.4) (471705,692)};
+    \addplot+[mark=*] coordinates {(100,0.4546) (200,1.256) (2000,23.18) (20000,311.1) (200000,3538) (471705,8657)};
+    \legend{1 -- Intercalação $2f$, 2 -- Intercalação $f+1$, 3 -- Quicksort externo}
+    \end{loglogaxis}
+    \end{tikzpicture}
+    \caption{Tempo de execução (média de 5 execuções), situação aleatória.}
+    \label{fig:tempo}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \footnotesize
+    \begin{tabular}{|l|l|r|r|r|}
+        \hline\hline
+        Situação & Métrica & 1 -- Interc. $2f$ & 2 -- Interc. $f+1$ & 3 -- Quicksort \\\hline
+        Ascendente  & Leituras/$n$ & \textbf{1,00} & \textbf{1,00} & \textbf{1,00} \\
+                    & Comparações  & \textbf{1.434.312} & 1.469.935 & 2.592.015 \\
+                    & Tempo (ms)   & 85,6 & \textbf{83,3} & 936,7 \\\hline
+        Descendente & Leituras/$n$ & 4,00 & 6,00 & \textbf{1,00} \\
+                    & Comparações  & 5.368.930 & 3.425.907 & \textbf{2.357.650} \\
+                    & Tempo (ms)   & \textbf{345,5} & 526,2 & 893,7 \\\hline
+        Aleatória   & Leituras/$n$ & \textbf{6,00} & 8,00 & 9,27 \\
+                    & Comparações  & 10.894.628 & \textbf{7.946.859} & 8.091.771 \\
+                    & Tempo (ms)   & \textbf{574,4} & 692,0 & 8.656,9 \\\hline\hline
+    \end{tabular}
+    \caption{\label{tab:resumo}Resumo com 471.705 registros (em negrito, o melhor valor de cada linha).}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Transferências}: no arquivo aleatório, o método 1 é o que menos transfere ($6n$), seguido do método 2 ($8n$) e do Quicksort ($9{,}3n$). O método 2 intercala quase o dobro de caminhos por passada, mas a redistribuição dobra o custo de cada passada intermediária, e com $f = 19$ isso não compensa: $2\lceil \log_{19} B \rceil$ só é menor que $1 + \lceil \log_{10} B \rceil$ em poucos valores de $B$ (o caso de 200 registros é um deles). Nos arquivos ordenados, o Quicksort lê cada registro uma única vez, e as intercalações fazem o mesmo só no ascendente.
+    \item \textbf{Comparações}: o método 2 é o que menos compara no aleatório e o Quicksort, no descendente. O método 1 é o que mais compara nas duas situações, por ter mais passadas com \emph{heap}.
+    \item \textbf{Tempo}: o método 1 foi o mais rápido nos arquivos grandes, seguido de perto pelo método 2. Com 471.705 registros, o Quicksort externo foi de 2,6 vezes (descendente) a 15 vezes (aleatório) mais lento que o método 1, não pelo número de transferências, mas pelo custo de cada uma: o acesso não sequencial ao arquivo, com um \texttt{fseek} por transferência, impede o uso do \emph{buffer}. Com 100 registros a ordem se inverte e o Quicksort é o mais rápido, porque nos métodos de intercalação o custo de criar e apagar 20 fitas pesa mais que a ordenação.
+    \item \textbf{Ordem do arquivo}: o ascendente é o melhor caso para todos os métodos. O descendente é bom para o Quicksort e, graças às notas repetidas, menos ruim do que o esperado para as intercalações. O aleatório é o pior caso para todos.
+\end{itemize}
+
+\clearpage
+\section{Considerações Finais}
+
+A intercalação balanceada com $2f$ fitas foi o método mais eficiente em transferências e em tempo nos arquivos grandes; a intercalação com $f+1$ fitas foi a que menos comparou no arquivo aleatório, mas fez mais transferências por causa da redistribuição; e o Quicksort externo foi o melhor em transferências e comparações no arquivo descendente, mas o mais lento em tempo, por acessar o arquivo de forma não sequencial.
+
+As principais dificuldades encontradas na implementação foram:
+
+\begin{itemize}
+    \item \textbf{Intercalação com $f+1$ fitas}: a primeira versão implementava, por engano, a intercalação polifásica (distribuição dos blocos pelos números de Fibonacci generalizados), que é outro método. Ela foi reescrita como intercalação balanceada, com a etapa de redistribuição dos blocos da fita de saída para as 19 fitas de entrada.
+    \item \textbf{Fim de bloco nas fitas}: no método 1, o fim de um bloco é detectado quando o próximo registro da fita é menor que o último gravado. No método 2 foi preciso marcar o último registro de cada bloco (campo \texttt{marcado}), porque a redistribuição precisa saber exatamente onde cada bloco termina. A marca reaproveita o campo do registro e não custa transferências extras.
+    \item \textbf{Ponteiros do Quicksort externo}: os três ponteiros abrem o mesmo arquivo, cada um com o seu \emph{buffer}. Sem descarregar os \emph{buffers} (\texttt{fflush}) no início e no fim de cada partição, a saída ficava desordenada e com registros duplicados ou perdidos já com 100 registros.
+    \item \textbf{Geração das situações}: os arquivos ascendente e descendente precisaram ser gerados a partir do original, ordenando-o uma vez com o próprio Quicksort externo e invertendo o resultado; isso é feito só na primeira execução.
+    \item \textbf{Medição justa}: foi preciso definir o que entra em cada métrica de forma igual para os três métodos: só comparações entre notas, só transferências de registros, e tempo de relógio sem a impressão do \texttt{-P}, sem a preparação do arquivo e sem a gravação do resultado em texto.
+\end{itemize}
+
+Como melhorias futuras, destacam-se o uso de um \emph{buffer} próprio no Quicksort externo (lendo e gravando vários registros por chamada), o que deve aproximar o seu tempo do dos métodos de intercalação, e a escolha de $f$ no método 2 de forma a minimizar $2\lceil \log_{f} B \rceil$ para o tamanho de arquivo esperado.
+
+
+\clearpage
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
