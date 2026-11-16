@@ -1,0 +1,149 @@
+= Implementação do **método 3**: Quicksort externo, como no livro do Ziviani. O arquivo é ordenado nele mesmo, com três ponteiros: Li (lê de baixo), Ei (escreve embaixo) e LEs (lê e escreve em cima). A partição lê registros alternadamente das duas pontas e usa uma área ordenada de 10 registros como pivô: o que é menor que a área vai para a esquerda, o que é maior vai para a direita, e a área termina gravada no meio, já no lugar definitivo. Depois o algoritmo ordena recursivamente os dois lados.
+1: Entrada e saída.
+2: Biblioteca padrão.
+3: Funções de string.
+4: Traz `FLT_MAX`, o maior valor de `float`, usado como "infinito" nos limites iniciais.
+5: Inclui o próprio cabeçalho.
+7: Contador global de leituras (é aqui que a variável existe de fato).
+8: Contador global de escritas.
+9: Contador global de comparações.
+12: Esvazia a área...
+13: ...simplesmente dizendo que ela tem zero elementos.
+16: Diz quantos registros há na área...
+17: ...devolvendo o contador.
+20: Insere um registro na área mantendo-a ordenada por nota (como uma rodada do insertion sort).
+21: Começa pelo último elemento da área.
+22: Anda para trás enquanto houver elementos...
+23: ...contando cada comparação de notas.
+25: Se o elemento da área é maior que o novo...
+26: ...ele anda uma casa para a direita, abrindo espaço...
+27: ...e o índice volta uma posição.
+28: Senão (achou um menor ou igual)...
+29: ...para: o lugar do novo é logo depois dele.
+33: Coloca o novo registro na posição aberta.
+34: A área tem um elemento a mais.
+35: Atualiza também o contador da partição (`NRArea`).
+38: Retira o **menor** registro da área.
+39: Se a área estiver vazia, não faz nada.
+40: O menor está na posição 0 (a área é ordenada).
+41: Desloca todos os outros uma casa para a esquerda...
+42: ...cobrindo o que saiu.
+44: A área tem um a menos.
+45: Atualiza o contador da partição.
+48: Retira o **maior** registro da área.
+49: Se estiver vazia, não faz nada.
+50: O maior é o último (área ordenada): basta copiá-lo...
+51: ...e diminuir o tamanho; ninguém precisa ser deslocado.
+52: Atualiza o contador da partição.
+56: Lê um registro do lado de cima (superior) do subarquivo.
+59: Posiciona o ponteiro LEs no registro `Ls`. As posições começam em 1, por isso `Ls - 1`. O `fseek` é necessário porque a leitura de cima anda para trás, e o `fread` sempre anda para frente.
+60: Lê o registro.
+61: Conta a leitura.
+62: O limite de leitura superior desce uma posição.
+63: Na próxima vez, a leitura deve ser feita pelo lado de baixo (alternância).
+66: Lê um registro do lado de baixo (inferior).
+67: Lê o registro. Aqui não precisa de `fseek`: a leitura de baixo anda para frente, como o `fread`.
+68: Conta a leitura.
+69: O limite de leitura inferior sobe uma posição.
+70: Na próxima vez, ler pelo lado de cima.
+74: Grava um registro no lado de cima (os maiores que o pivô).
+75: Posiciona o ponteiro LEs na posição de escrita superior `Es`.
+76: Grava.
+77: Conta a escrita.
+78: A posição de escrita superior desce uma casa.
+82: Grava um registro no lado de baixo (os menores que o pivô).
+83: Grava na posição atual do ponteiro Ei (que anda para frente sozinho).
+84: Conta a escrita.
+85: A posição de escrita inferior sobe uma casa.
+89: **Partição** do subarquivo entre as posições `Esq` e `Dir`. No fim, `*i` diz onde termina a parte da esquerda e `*j` onde começa a parte da direita.
+92: Os ponteiros de cima (`Ls` leitura, `Es` escrita) começam no fim do subarquivo; os de baixo (`Li`, `Ei`) começam no início.
+93: Quantos registros estão na área.
+94: Limites da área: `Linf` é a maior nota já mandada para a esquerda, `Lsup` a menor já mandada para a direita. Começam em "menos infinito" e "mais infinito".
+95: Controle da alternância: começa lendo por cima.
+96: `UltLido` recebe o último registro lido; `R` recebe o que sai da área.
+99: Os três ponteiros abrem o mesmo arquivo, mas cada um tem seu próprio buffer na memória. O `fflush` garante que nada gravado por um deles fique "preso" no buffer quando outro for ler. Sem isso, a partição podia ler dados velhos.
+101: Posiciona o ponteiro de leitura inferior no começo do subarquivo.
+102: Posiciona o ponteiro de escrita inferior no mesmo lugar.
+104: Valor inicial de `*i` (parte esquerda vazia).
+105: Valor inicial de `*j` (parte direita vazia).
+107: Continua enquanto houver registros não lidos entre os ponteiros de leitura.
+109: Primeiro, enche a área até 9 registros (uma posição fica livre para o próximo que entrar)...
+110: ...lendo por cima ou...
+111: ...por baixo, alternando...
+112: ...e inserindo na área em ordem...
+113: ...e volta ao começo do laço (sem comparar com os limites ainda).
+118: Se a escrita de cima alcançou a leitura de cima, é obrigatório ler por cima: senão a próxima escrita apagaria um registro ainda não lido.
+119: Mesma proteção para o lado de baixo.
+120: Sem risco: segue a alternância e lê por cima...
+121: ...ou por baixo.
+123: Conta a comparação a seguir.
+126: Se o registro lido é maior que o limite superior, ele com certeza fica à direita da área...
+128: ...então é gravado direto no lado de cima.
+129: E passa para o próximo registro.
+127: Atualiza `*j`: a parte direita começa (pelo menos) em `Es`.
+132: Conta a comparação a seguir.
+135: Se o registro é menor que o limite inferior, fica com certeza à esquerda...
+136: ...atualiza `*i`: a parte esquerda vai (pelo menos) até `Ei`...
+137: ...grava no lado de baixo...
+138: ...e passa para o próximo.
+142: O registro está entre os limites: entra na área (que fica com 10).
+147: Agora a área está cheia e um registro precisa sair. Para equilibrar os dois lados, sai pelo lado que tem menos registros: se a esquerda é menor...
+148: ...retira o menor da área...
+149: ...grava embaixo...
+150: ...e ele vira o novo limite inferior (tudo que for menor que ele vai direto para a esquerda).
+151: Senão (a direita é menor)...
+152: ...retira o maior da área...
+153: ...grava em cima...
+154: ...e ele vira o novo limite superior.
+159: Todos os registros foram lidos. Os que estão na área são exatamente os do meio, então são gravados no espaço central, em ordem...
+160: ...retirando sempre o menor...
+161: ...e gravando embaixo. Eles já ficam na posição final e não precisam mais ser mexidos.
+163: Descarrega os buffers para que a próxima partição leia os dados atualizados.
+166: **Quicksort externo** recursivo: ordena as posições `Esq` a `Dir` do arquivo.
+167: `i` e `j` vão receber os limites das duas partes depois da partição.
+168: A área (memória interna) desta chamada.
+170: Caso base: subarquivo com 0 ou 1 registro já está ordenado.
+172: Esvazia a área.
+174: Particiona: menores à esquerda, área no meio, maiores à direita.
+176: Ordena primeiro a parte **menor**. Isso limita a profundidade da recursão (e a memória usada pela pilha) a log n.
+177: Parte esquerda (`Esq` até `i`)...
+178: ...depois a direita (`j` até `Dir`).
+179: Senão (a direita é menor)...
+180: ...ordena a direita primeiro...
+181: ...depois a esquerda.
+190: Copia os n primeiros registros do arquivo da situação escolhida para o arquivo de trabalho, que é o que será ordenado. Essa cópia não entra nas métricas.
+191-192: Escolhe o arquivo de origem: 1 = `crescente.bin`, 2 = `decrescente.bin`, 3 = o original (aleatório).
+194: Abre a origem.
+195: Se não abriu...
+196: ...avisa...
+197: ...e devolve -1.
+199: Cria o arquivo de trabalho.
+200: Se não conseguiu...
+201: ...avisa...
+202: ...fecha a origem...
+203: ...e devolve -1.
+206: Buffer para copiar 1.024 registros de cada vez (bem mais rápido que um por um). É só uma cópia, fora da ordenação, então não fere a restrição de memória dos métodos.
+207: Quantos registros ainda faltam copiar.
+208: Enquanto faltar...
+209: ...pede 1.024 ou o que falta, o que for menor...
+210: ...lê esse lote...
+211: ...se não leu nada (arquivo acabou), para...
+212: ...grava o lote; se a gravação falhou, para...
+213: ...e desconta o que foi copiado.
+215: Fecha a origem.
+216: Fecha o arquivo de trabalho.
+217: Se ainda faltou registro (a origem era menor que n)...
+218: ...avisa...
+219: ...e devolve -1.
+221: Sucesso.
+224: Imprime n registros de um arquivo binário num formato de etiquetas (função de apoio, não usada no programa final).
+225: Abre o arquivo.
+226: Se não abriu, sai.
+227: Registro auxiliar.
+228: Contador.
+229: Título.
+230: Lê até n registros...
+231-232: ...e mostra cada um com rótulos.
+233: Conta mais um.
+235: Linha final.
+236: Fecha o arquivo.

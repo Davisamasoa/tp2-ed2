@@ -1,0 +1,6 @@
+= Cabeçalho do módulo de preparação: declara as funções que geram os arquivos binários base e contam registros.
+1-2: Guarda de inclusão (evita definir as coisas duas vezes se o cabeçalho for incluído mais de uma vez).
+4: Nome do arquivo binário com todos os alunos na ordem original do PROVAO.TXT (a situação "aleatória"). Usar uma constante evita digitar o nome errado em algum lugar.
+8: Declara `garantirArquivosBase`: cria `binario.bin`, `crescente.bin` e `decrescente.bin` se ainda não existirem. Devolve 0 se deu certo.
+9: Declara `contarRegistros`: diz quantos registros um arquivo binário tem (tamanho em bytes dividido pelo tamanho de um registro).
+11: Fecha a guarda de inclusão.

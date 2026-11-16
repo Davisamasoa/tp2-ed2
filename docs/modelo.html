@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordenação Externa explicada</title>
+<meta name="description" content="Guia de estudo do TP2 de Estrutura de Dados II (UFOP): ordenação externa com intercalação balanceada 2f, f+1 e Quicksort externo, com o código explicado linha por linha.">
+<style>
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --surface-2: #f3f1ec; --border: #e2ded5;
+  --text: #1f1d1a; --muted: #6a655c; --accent: #2457c5; --accent-soft: #e6edfb;
+  --good: #1f7a4d; --good-soft: #e3f3ea; --warn: #9a5b00; --warn-soft: #fbefdc;
+  --bad: #b3261e; --bad-soft: #fbe5e3; --frozen: #3b6fb6; --frozen-soft: #e2ecf8;
+  --code-bg: #f6f4ef; --cm: #6f7d6a; --kw: #8a2c84; --st: #a3431b; --nu: #1d6b8f; --pp: #7a5c00; --ty: #1f6b4f; --mc: #3d4fb0;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1c1f23; --surface-2: #23272c; --border: #33383f;
+    --text: #e8e6e1; --muted: #a09b92; --accent: #7aa2ff; --accent-soft: #1f2a44;
+    --good: #5cc48d; --good-soft: #17301f; --warn: #e2a64a; --warn-soft: #33270f;
+    --bad: #ff8a80; --bad-soft: #3a1b19; --frozen: #8db4f0; --frozen-soft: #1c2b40;
+    --code-bg: #1a1d21; --cm: #8b9a86; --kw: #d59ad0; --st: #e6a07c; --nu: #79c0e0; --pp: #d8bb63; --ty: #7fd0ac; --mc: #a3b1ff;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1c1f23; --surface-2: #23272c; --border: #33383f;
+  --text: #e8e6e1; --muted: #a09b92; --accent: #7aa2ff; --accent-soft: #1f2a44;
+  --good: #5cc48d; --good-soft: #17301f; --warn: #e2a64a; --warn-soft: #33270f;
+  --bad: #ff8a80; --bad-soft: #3a1b19; --frozen: #8db4f0; --frozen-soft: #1c2b40;
+  --code-bg: #1a1d21; --cm: #8b9a86; --kw: #d59ad0; --st: #e6a07c; --nu: #79c0e0; --pp: #d8bb63; --ty: #7fd0ac; --mc: #a3b1ff;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+:not(pre) > code { background: var(--surface-2); padding: .1em .35em; border-radius: 4px; }
+a { color: var(--accent); }
+.layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.lateral {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 24px 16px 40px 20px;
+  border-right: 1px solid var(--border); font-size: 14px;
+}
+nav.lateral .marca { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+nav.lateral .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+nav.lateral ol, nav.lateral ul { list-style: none; padding: 0; margin: 0; }
+nav.lateral li a { display: block; padding: 4px 8px; border-radius: 6px; color: var(--text); text-decoration: none; }
+nav.lateral li a:hover { background: var(--surface-2); }
+nav.lateral li a.ativo { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+nav.lateral ul.arquivos { margin: 4px 0 8px 12px; font-size: 13px; }
+nav.lateral ul.arquivos a { padding: 2px 8px; }
+.tema { margin-top: 18px; }
+button, .botao {
+  font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { padding: 32px 40px 80px; min-width: 0; }
+header.capa { padding: 8px 0 28px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+header.capa .rotulo { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+header.capa h1 { font-size: 2.3rem; line-height: 1.2; margin: 6px 0 12px; }
+header.capa p { max-width: 760px; color: var(--muted); font-size: 1.08rem; margin: 0; }
+section.cap { padding: 28px 0 8px; max-width: 900px; }
+section.cap.largo { max-width: none; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 24px 0 12px; }
+h2 .num { color: var(--muted); font-weight: 500; margin-right: 6px; }
+h3 { font-size: 1.2rem; margin: 26px 0 8px; }
+p { margin: 0 0 14px; }
+.cartao { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); margin: 16px 0; }
+.dica { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+.alerta { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+.grade-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.grade-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grade-3 .cartao, .grade-2 .cartao { margin: 0; }
+.cartao h4 { margin: 0 0 6px; font-size: 1rem; }
+.cartao .tag { display: inline-block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+table.dados { border-collapse: collapse; width: 100%; font-size: 15px; margin: 12px 0 18px; }
+table.dados th, table.dados td { border-bottom: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+table.dados th { background: var(--surface-2); font-weight: 600; }
+table.dados td.n, table.dados th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.rolagem { overflow-x: auto; }
+.passos { counter-reset: p; list-style: none; padding: 0; }
+.passos > li { counter-increment: p; position: relative; padding: 0 0 12px 40px; }
+.passos > li::before {
+  content: counter(p); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: grid; place-items: center;
+}
+/* regua do PROVAO */
+.regua { font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-x: auto; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; white-space: pre; line-height: 1.5; }
+.regua .c1 { background: #f4d58d55; } .regua .c2 { background: #8fd3a955; } .regua .c3 { background: #9cc3f055; } .regua .c4 { background: #e9a7c455; } .regua .c5 { background: #c7b3f055; }
+.legenda-cores { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin: 8px 0 16px; }
+.legenda-cores span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legenda-cores .c1::before { background: #f4d58d; } .legenda-cores .c2::before { background: #8fd3a9; } .legenda-cores .c3::before { background: #9cc3f0; } .legenda-cores .c4::before { background: #e9a7c4; } .legenda-cores .c5::before { background: #c7b3f0; }
+/* diagramas */
+.memoria-disco { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin: 16px 0; }
+.caixa { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--surface); text-align: center; }
+.caixa strong { display: block; }
+.caixa small { color: var(--muted); }
+.seta { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.4; }
+.seta b { display: block; font-size: 22px; color: var(--accent); }
+.fitas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.fita { font-family: ui-monospace, Menlo, monospace; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; background: var(--surface-2); }
+.fita.ent { border-color: var(--accent); background: var(--accent-soft); }
+.fita.sai { border-color: var(--good); background: var(--good-soft); }
+.fluxo { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+.fluxo .etapa { flex: 1 1 150px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--surface); font-size: 14px; }
+.fluxo .etapa b { display: block; margin-bottom: 2px; }
+.fluxo .etapa code { font-size: 12px; }
+.fluxo .liga { align-self: center; color: var(--muted); }
+/* simuladores */
+.sim { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin: 18px 0; box-shadow: var(--shadow); }
+.sim h4 { margin: 0 0 4px; }
+.sim .controles { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.sim .rotulo-linha { font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+.celulas { display: flex; flex-wrap: wrap; gap: 6px; min-height: 44px; }
+.cel {
+  min-width: 44px; height: 44px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2);
+  display: grid; place-items: center; font-family: ui-monospace, Menlo, monospace; font-size: 15px; position: relative;
+  transition: background .2s, border-color .2s, opacity .2s;
+}
+.cel.min { border: 2px solid var(--accent); background: var(--accent-soft); }
+.cel.cong { background: var(--frozen-soft); border-color: var(--frozen); color: var(--frozen); }
+.cel.cong::after { content: "congelado"; position: absolute; bottom: -17px; font-size: 10px; color: var(--frozen); font-family: inherit; }
+.cel.novo { border: 2px dashed var(--warn); }
+.cel.lida { opacity: .35; }
+.cel.esq { background: var(--good-soft); border-color: var(--good); }
+.cel.dir { background: var(--warn-soft); border-color: var(--warn); }
+.cel.livre { background: transparent; border-style: dashed; color: var(--muted); }
+.cel.fora { opacity: .45; }
+.cel.final { background: var(--surface); border-color: var(--good); }
+.blocos { display: flex; flex-direction: column; gap: 6px; }
+.bloco { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.bloco .nome { font-size: 13px; color: var(--muted); width: 70px; }
+.bloco .cel { min-width: 36px; height: 32px; font-size: 13px; }
+.log { margin-top: 14px; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 15px; min-height: 48px; }
+.coluna { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ponteiros .pos, .coluna .pos { min-width: 44px; text-align: center; font-size: 11px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; line-height: 1.25; min-height: 30px; }
+.ponteiros .pos b { color: var(--accent); }
+.legenda-sim { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.legenda-sim i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--border); vertical-align: -2px; margin-right: 5px; }
+select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; }
+input[type=range] { width: 260px; accent-color: var(--accent); }
+.resultado-calc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.resultado-calc .cartao { margin: 0; }
+.grande { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* perguntas */
+details { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin: 8px 0; }
+details summary { cursor: pointer; padding: 12px 16px; font-weight: 600; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: "+"; display: inline-block; width: 18px; color: var(--accent); font-weight: 700; }
+details[open] summary::before { content: "−"; }
+details .resp { padding: 0 16px 14px 34px; }
+/* codigo linha por linha */
+section.arquivo { margin: 28px 0 40px; }
+section.arquivo h3 { font-size: 1.25rem; padding-top: 8px; border-top: 2px solid var(--border); }
+p.resumo { max-width: 900px; }
+.tabela-rolagem { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table.codigo { border-collapse: collapse; width: 100%; min-width: 820px; font-size: 14px; }
+table.codigo td { vertical-align: top; border-bottom: 1px solid var(--border); }
+table.codigo tr:target td, table.codigo tr.realce td { background: var(--accent-soft); }
+table.codigo td.ln { width: 46px; text-align: right; padding: 3px 8px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--code-bg); user-select: none; }
+table.codigo td.co { width: 50%; background: var(--code-bg); padding: 3px 10px; border-right: 1px solid var(--border); }
+table.codigo td.co pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5; }
+table.codigo td.ex { padding: 4px 14px; line-height: 1.5; }
+table.codigo td.ex.com { color: var(--muted); font-style: italic; font-size: 13px; }
+table.codigo td.ex.auto { color: var(--muted); font-size: 13px; }
+table.codigo td.ex.vazia { border-bottom-color: transparent; }
+.cm { color: var(--cm); font-style: italic; } .kw { color: var(--kw); font-weight: 600; } .st { color: var(--st); }
+.nu { color: var(--nu); } .pp { color: var(--pp); font-weight: 600; } .ty { color: var(--ty); font-weight: 600; } .mc { color: var(--mc); }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); margin-top: 40px; padding-top: 16px; }
+@media (max-width: 960px) {
+  .layout { display: block; }
+  nav.lateral { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+  nav.lateral ol { columns: 2; }
+  nav.lateral ul.arquivos { display: none; }
+  main { padding: 20px 16px 60px; }
+  .grade-3, .grade-2, .resultado-calc { grid-template-columns: 1fr; }
+  .memoria-disco { grid-template-columns: 1fr; }
+  header.capa h1 { font-size: 1.8rem; }
+  input[type=range] { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="lateral" aria-label="Sumário">
+  <div class="marca">Ordenação Externa</div>
+  <div class="sub">TP2 · BCC203 · UFOP</div>
+  <ol>
+    <li><a href="#trabalho">1. O trabalho</a></li>
+    <li><a href="#conceitos">2. Conceitos básicos</a></li>
+    <li><a href="#dados">3. Os dados</a></li>
+    <li><a href="#selecao">4. Seleção por substituição</a></li>
+    <li><a href="#metodo1">5. Método 1: 2f fitas</a></li>
+    <li><a href="#metodo2">6. Método 2: f+1 fitas</a></li>
+    <li><a href="#metodo3">7. Método 3: Quicksort</a></li>
+    <li><a href="#fluxo">8. Fluxo do programa</a></li>
+    <li><a href="#resultados">9. Resultados</a></li>
+    <li><a href="#codigo">10. Código linha a linha</a>
+      <ul class="arquivos"><!--INDICE_CODIGO--></ul></li>
+    <li><a href="#perguntas">11. Perguntas de prova</a></li>
+    <li><a href="#glossario">12. Glossário</a></li>
+  </ol>
+  <div class="tema"><button type="button" id="botao-tema" aria-label="Alternar tema claro ou escuro">Tema: automático</button></div>
+</nav>
+
+<main>
+<header class="capa">
+  <div class="rotulo">Estrutura de Dados II · Trabalho Prático II · guia de estudo</div>
+  <h1>Ordenação externa, do zero até o código</h1>
+  <p>Este guia explica o que o trabalho pede, a ideia por trás de cada um dos três métodos, os resultados medidos e, no fim, cada linha do código. Os simuladores deixam você executar os algoritmos passo a passo com números pequenos.</p>
+</header>
+
+<div class="dica"><strong>Como estudar por aqui:</strong> leia as seções 1 a 3 para entender o problema; use os simuladores das seções 4 e 7 até conseguir prever o próximo passo antes de clicar; depois percorra o código (seção 10) com o conceito fresco na cabeça. A seção 11 tem perguntas no estilo do que o professor pode perguntar na apresentação.</div>
+
+<!-- ============================ 1 ============================ -->
+<section class="cap" id="trabalho">
+<h2><span class="num">1.</span>O que é o trabalho</h2>
+<p>O objetivo é <strong>implementar em C três métodos de ordenação externa</strong> e <strong>medir o desempenho</strong> de cada um ao ordenar, por nota e em ordem crescente, alunos do arquivo <code>PROVAO.TXT</code> (471.705 alunos que fizeram o Provão em 2003).</p>
+<p>"Ordenação externa" é ordenar dados que <strong>não cabem na memória principal</strong>. Para simular essa situação, o enunciado limita a memória interna a 10 ou 19 registros. O programa é obrigado a trabalhar com os dados no disco (em "fitas", que aqui são arquivos), trazendo poucos registros de cada vez para a memória.</p>
+
+<div class="grade-3">
+  <div class="cartao"><span class="tag">Método 1</span><h4>Intercalação balanceada, 2f fitas</h4>Gera blocos ordenados com seleção por substituição e intercala 10 fitas em outras 10, alternando.<br><small>Memória: 10 registros · 20 fitas (10 + 10)</small></div>
+  <div class="cartao"><span class="tag">Método 2</span><h4>Intercalação balanceada, f+1 fitas</h4>Também usa seleção por substituição, mas intercala 19 fitas em uma só e depois redistribui os blocos.<br><small>Memória: 19 registros · 20 fitas (19 + 1)</small></div>
+  <div class="cartao"><span class="tag">Método 3</span><h4>Quicksort externo</h4>Particiona o próprio arquivo usando uma área de memória como pivô, e ordena as partes recursivamente.<br><small>Memória: 10 registros · o próprio arquivo</small></div>
+</div>
+
+<h3>O que é medido</h3>
+<table class="dados">
+<tr><th>Métrica</th><th>O que conta</th></tr>
+<tr><td>Transferências de leitura</td><td>Registros trazidos da memória externa (arquivo ou fita) para a interna.</td></tr>
+<tr><td>Transferências de escrita</td><td>Registros levados da memória interna para a externa.</td></tr>
+<tr><td>Comparações</td><td>Comparações entre notas (o campo de ordenação).</td></tr>
+<tr><td>Tempo de execução</td><td>Tempo de término menos tempo de início da ordenação.</td></tr>
+</table>
+
+<h3>Os experimentos</h3>
+<p>Cada método ordena os <strong>n</strong> primeiros alunos, com n = 100, 200, 2.000, 20.000, 200.000 e 471.705, em três <strong>situações</strong> iniciais: arquivo já ordenado crescente, ordenado decrescente e desordenado (a ordem original). São 3 × 6 × 3 = <strong>54 experimentos</strong>.</p>
+
+<h3>Como se executa</h3>
+<p><code>./ordena &lt;método&gt; &lt;quantidade&gt; &lt;situação&gt; [-P]</code>, por exemplo <code>./ordena 1 2000 3 -P</code>. O <code>-P</code> é opcional e mostra na tela os dados antes e depois da ordenação. Toda execução termina mostrando as quatro métricas.</p>
+
+<h3>O que precisa ser entregue</h3>
+<ul>
+  <li>Código-fonte bem indentado e comentado.</li>
+  <li>Relatório com introdução, análise de cada método em todos os experimentos e conclusão comparativa (com as dificuldades encontradas).</li>
+  <li>Apresentação do programa ao professor. Entrega no Moodle até 10h de 19/11.</li>
+</ul>
+</section>
+
+<!-- ============================ 2 ============================ -->
+<section class="cap" id="conceitos">
+<h2><span class="num">2.</span>Conceitos básicos</h2>
+
+<h3>Memória interna e memória externa</h3>
+<p>Pense numa mesa de estudo (memória interna: rápida, mas pequena) e numa estante cheia de livros (memória externa: enorme, mas cada ida até ela custa caro). Ordenar externamente é organizar a estante tendo espaço na mesa para poucos livros de cada vez.</p>
+<div class="memoria-disco">
+  <div class="caixa"><strong>Memória interna (RAM)</strong><small>Aqui: só 10 ou 19 registros</small></div>
+  <div class="seta"><b>⇄</b>cada registro que passa<br>é uma <strong>transferência</strong></div>
+  <div class="caixa"><strong>Memória externa (disco)</strong><small>O arquivo e as fitas</small></div>
+</div>
+<p>Como acessar o disco é muito mais lento do que comparar dois números na memória, o principal custo de um método externo é o <strong>número de transferências</strong>. Por isso o trabalho conta leituras e escritas separadamente das comparações.</p>
+
+<h3>Fita</h3>
+<p>Antigamente os dados ficavam em fitas magnéticas, que só podem ser lidas em sequência, do início ao fim. Os métodos de intercalação foram pensados para esse tipo de acesso. No trabalho, cada fita é um <strong>arquivo temporário</strong> (<code>fita_0.bin</code>, <code>fita_1.bin</code>...), lido e gravado sempre em sequência.</p>
+
+<h3>Bloco ordenado</h3>
+<p>Um <strong>bloco</strong> (ou "corrida") é um trecho de registros já em ordem crescente. Os métodos de intercalação funcionam em duas fases: primeiro geram vários blocos ordenados pequenos; depois juntam (intercalam) blocos em blocos cada vez maiores, até sobrar um único bloco: o arquivo ordenado.</p>
+
+<h3>Intercalação</h3>
+<p>Intercalar é juntar várias sequências ordenadas em uma só sequência ordenada. Com 3 blocos <code>[10 40 70]</code>, <code>[20 50]</code> e <code>[30 60 80]</code>: olhamos o primeiro de cada um, tiramos o menor (10), olhamos de novo (40, 20, 30), tiramos o 20, e assim por diante. Só precisamos ter na memória <strong>um registro de cada bloco</strong>. Com f blocos, a memória precisa de f posições.</p>
+
+<h3>Passada</h3>
+<p>Uma <strong>passada</strong> é ler o arquivo inteiro uma vez (e gravá-lo de novo). Se a cada passada f blocos viram 1, então B blocos precisam de cerca de log<sub>f</sub>(B) passadas. Cada passada custa n leituras e n escritas. Por isso, quanto <strong>maior o f</strong> e <strong>menos blocos</strong> iniciais, menos transferências.</p>
+
+<h3>Heap mínimo</h3>
+<p>Para achar rapidamente o menor entre vários registros, os métodos 1 e 2 usam um <strong>heap mínimo</strong>: uma árvore guardada num vetor, em que cada pai é menor que os filhos. O menor está sempre na posição 0 (a raiz). Os filhos da posição <code>i</code> ficam em <code>2i+1</code> e <code>2i+2</code>. Trocar a raiz e "descer" o elemento até o lugar certo custa cerca de 2·log<sub>2</sub>(tamanho) comparações (função <a href="#arq-int2f-c-L28"><code>refaz_heap</code></a>).</p>
+</section>
+
+<!-- ============================ 3 ============================ -->
+<section class="cap" id="dados">
+<h2><span class="num">3.</span>Os dados</h2>
+<p>Cada linha do <code>PROVAO.TXT</code> é um aluno, com campos em colunas fixas:</p>
+<div class="regua"><span class="c1">00170838</span> <span class="c2">034.8</span> <span class="c3">MT</span> <span class="c4">CUIABA                                            </span> <span class="c5">ADMINISTRACAO                 </span>
+1      8 10  14 16 19                                               68 70                          99</div>
+<div class="legenda-cores"><span class="c1">inscrição (1 a 8)</span><span class="c2">nota (10 a 14)</span><span class="c3">estado (16 e 17)</span><span class="c4">cidade (19 a 68)</span><span class="c5">curso (70 a 99)</span></div>
+<p>Na primeira execução, o programa converte o texto em <strong>registros binários</strong> de tamanho fixo (a struct <a href="#arq-registro-h-L10"><code>Registro</code></a>, 104 bytes). Arquivo binário é mais fácil de manipular: o registro número k está sempre no byte k × 104, e um único <code>fread</code> traz um aluno inteiro.</p>
+
+<h3>As três situações</h3>
+<div class="fluxo">
+  <div class="etapa"><b>PROVAO.TXT</b>texto original</div><div class="liga">→</div>
+  <div class="etapa"><b>binario.bin</b>mesma ordem: situação 3 (aleatória)</div><div class="liga">→</div>
+  <div class="etapa"><b>crescente.bin</b>ordenado pelo Quicksort externo: situação 1</div><div class="liga">→</div>
+  <div class="etapa"><b>decrescente.bin</b>crescente lido de trás para frente: situação 2</div>
+</div>
+<p>A cada execução, os n primeiros registros da situação escolhida são copiados para <code>provaoOrdenar.dat</code>, e é esse arquivo que o método ordena. Isso é feito por <a href="#arq-preparo-c-L84"><code>garantirArquivosBase</code></a> e <a href="#arq-quicksort-c-L190"><code>prepararSituacao</code></a>.</p>
+<div class="alerta"><strong>Detalhe importante para a análise:</strong> as notas têm uma casa decimal entre 0 e 100, então existem no máximo 1.001 notas diferentes para 471.705 alunos. Há <strong>muitas notas repetidas</strong>, e isso muda o comportamento dos métodos no arquivo descendente (veja a seção 9).</div>
+</section>
+
+<!-- ============================ 4 ============================ -->
+<section class="cap" id="selecao">
+<h2><span class="num">4.</span>Seleção por substituição</h2>
+<p>É a técnica que os métodos 1 e 2 usam para criar os blocos ordenados iniciais. A forma ingênua seria: ler M registros, ordenar na memória, gravar como um bloco, repetir. Isso dá blocos de tamanho M. A seleção por substituição faz <strong>blocos com cerca de 2M registros em média</strong> (no arquivo aleatório), o que reduz o número de blocos pela metade.</p>
+<ol class="passos">
+  <li>Encha a memória com M registros.</li>
+  <li>Grave na fita o <strong>menor</strong> registro da memória.</li>
+  <li>Leia o próximo registro da entrada para o lugar dele. Se a nota dele for <strong>menor</strong> que a do que acabou de ser gravado, ele não pode entrar no bloco atual (quebraria a ordem): marque como <strong>congelado</strong>. Congelados são tratados como maiores que qualquer não congelado.</li>
+  <li>Quando <strong>todos</strong> da memória estiverem congelados, o bloco acabou: descongele todos e comece um novo bloco, na próxima fita.</li>
+  <li>Quando a entrada acabar, vá esvaziando a memória.</li>
+</ol>
+<p>No arquivo <strong>já crescente</strong>, nenhum registro é congelado: sai um único bloco com o arquivo inteiro, e não precisa de intercalação. No código: <a href="#arq-int2f-c-L67"><code>geracao_blocos_substituicao</code></a> (método 1) e <a href="#arq-int_f1-c-L101"><code>gera_blocos_f1</code></a> (método 2).</p>
+
+<div class="sim" id="sim-selecao">
+  <h4>Simulador: seleção por substituição com memória de 3 registros</h4>
+  <div class="controles">
+    <button type="button" class="primario" data-acao="passo">Próximo passo</button>
+    <button type="button" data-acao="auto">Executar tudo</button>
+    <button type="button" data-acao="reiniciar">Reiniciar</button>
+    <label>Entrada: <select data-campo="entrada">
+      <option value="aleatoria">aleatória</option>
+      <option value="crescente">crescente</option>
+      <option value="decrescente">decrescente</option>
+    </select></label>
+  </div>
+  <div class="rotulo-linha">Entrada ainda não lida</div>
+  <div class="celulas" data-area="entrada"></div>
+  <div class="rotulo-linha">Memória interna (o menor não congelado está destacado)</div>
+  <div class="celulas" data-area="memoria" style="margin-bottom:14px"></div>
+  <div class="rotulo-linha">Blocos gravados nas fitas</div>
+  <div class="blocos" data-area="blocos"></div>
+  <div class="log" data-area="log" aria-live="polite"></div>
+</div>
+</section>
+
+<!-- ============================ 5 ============================ -->
+<section class="cap" id="metodo1">
+<h2><span class="num">5.</span>Método 1: intercalação balanceada com 2f fitas</h2>
+<p>Aqui <strong>f = 10</strong>: existem 20 fitas, metade de entrada e metade de saída. A memória comporta 10 registros: exatamente um de cada fita de entrada durante a intercalação.</p>
+<ol class="passos">
+  <li><strong>Geração:</strong> a seleção por substituição grava os blocos alternadamente nas fitas 10, 11, ..., 19, 10, 11...</li>
+  <li><strong>Passada de intercalação:</strong> lê o 1º bloco de cada uma das 10 fitas, intercala e grava um bloco grande na fita de saída 0; depois os 2º blocos vão para a fita 1; e assim por diante, alternando as fitas de saída.</li>
+  <li><strong>Troca de papéis:</strong> as fitas de saída viram entrada, e as de entrada são esvaziadas para virar saída. No código, isso é só trocar dois ponteiros (<code>fitas_entrada</code> e <code>fitas_saida</code>).</li>
+  <li>Repete até sobrar <strong>um único bloco</strong>.</li>
+</ol>
+<div class="cartao">
+  <div class="rotulo-linha">Passada ímpar</div>
+  <div class="fitas"><span class="fita ent">fita 10</span><span class="fita ent">fita 11</span><span class="fita ent">...</span><span class="fita ent">fita 19</span> <span class="seta" style="padding:0 6px">→ intercala 10 blocos em 1 →</span> <span class="fita sai">fita 0</span><span class="fita sai">fita 1</span><span class="fita sai">...</span><span class="fita sai">fita 9</span></div>
+  <div class="rotulo-linha">Passada par (os papéis se invertem)</div>
+  <div class="fitas"><span class="fita ent">fita 0</span><span class="fita ent">fita 1</span><span class="fita ent">...</span><span class="fita ent">fita 9</span> <span class="seta" style="padding:0 6px">→ intercala 10 blocos em 1 →</span> <span class="fita sai">fita 10</span><span class="fita sai">fita 11</span><span class="fita sai">...</span><span class="fita sai">fita 19</span></div>
+</div>
+<h3>Como a intercalação sabe onde termina cada bloco?</h3>
+<p>Os blocos são crescentes. Se o próximo registro de uma fita for <strong>menor</strong> que o que acabou de sair dela, começou outro bloco. Esse registro fica congelado até todas as fitas terminarem o bloco atual; aí o bloco de saída é fechado e o próximo vai para outra fita de saída (<a href="#arq-int2f-c-L206"><code>intercalacao_2f</code></a>).</p>
+<h3>Custo</h3>
+<p>Com B blocos iniciais: <strong>1 + ⌈log<sub>10</sub> B⌉ passadas</strong> (a geração mais as intercalações), e cada passada lê e grava os n registros. No arquivo aleatório com 471.705 alunos: cerca de 23.600 blocos de 20 registros, ⌈log<sub>10</sub> 23.600⌉ = 5 intercalações, total de 6 passadas = <strong>6n leituras</strong> (exatamente o medido: 2.830.230).</p>
+</section>
+
+<!-- ============================ 6 ============================ -->
+<section class="cap" id="metodo2">
+<h2><span class="num">6.</span>Método 2: intercalação balanceada com f+1 fitas</h2>
+<p>Aqui <strong>f = 19</strong>: 19 fitas de entrada e só <strong>1 fita de saída</strong>. A memória comporta 19 registros. A vantagem é intercalar 19 caminhos de uma vez (em vez de 10). O preço é que, com uma só fita de saída, todos os blocos gerados numa passada ficam na mesma fita e precisam ser <strong>redistribuídos</strong> nas 19 fitas antes da próxima passada.</p>
+<ol class="passos">
+  <li><strong>Geração:</strong> seleção por substituição com memória de 19, blocos gravados alternadamente nas fitas 0 a 18. O último registro de cada bloco recebe <code>marcado = 1</code>, uma marca de fim de bloco que não custa nenhuma transferência extra.</li>
+  <li><strong>Intercalação:</strong> o 1º bloco de cada uma das 19 fitas vira um bloco na fita 19; depois os 2º blocos viram outro bloco na fita 19; e assim por diante (<a href="#arq-int_f1-c-L149"><code>intercala_um_bloco</code></a>).</li>
+  <li>Se a fita 19 ficou com <strong>um único bloco</strong>, terminou.</li>
+  <li><strong>Redistribuição:</strong> senão, os blocos da fita 19 são copiados de volta, alternadamente, para as fitas 0 a 18 (<a href="#arq-int_f1-c-L181"><code>redistribui</code></a>), e volta ao passo 2.</li>
+</ol>
+<div class="cartao">
+  <div class="fitas"><span class="fita ent">fita 0</span><span class="fita ent">fita 1</span><span class="fita ent">...</span><span class="fita ent">fita 18</span> <span class="seta" style="padding:0 6px">→ intercala 19 em 1 →</span> <span class="fita sai">fita 19</span> <span class="seta" style="padding:0 6px">→ redistribui →</span> <span class="fita ent">fitas 0 a 18</span></div>
+</div>
+<h3>Custo</h3>
+<p>Com k = ⌈log<sub>19</sub> B⌉ intercalações, são 1 geração + k intercalações + (k − 1) redistribuições = <strong>2k passadas</strong>. A redistribuição dobra o custo de cada passada intermediária. Com 471.705 alunos aleatórios: cerca de 12.400 blocos de 38 registros, 4 intercalações (12.400 → 654 → 35 → 2 → 1) e 3 redistribuições: <strong>8n leituras</strong> (medido: 3.773.640 = 8 × 471.705).</p>
+
+<div class="sim" id="sim-passadas">
+  <h4>Calculadora: quantas vezes cada registro é lido?</h4>
+  <p style="margin:0;color:var(--muted);font-size:14px">Estimativa para o arquivo aleatório, com blocos de 2M registros (20 no método 1, 38 no método 2).</p>
+  <div class="controles">
+    <label for="calc-n">n = <strong data-campo="n-texto">471.705</strong></label>
+    <input id="calc-n" type="range" min="2" max="5.68" step="0.01" value="5.6737">
+  </div>
+  <div class="resultado-calc">
+    <div class="cartao"><span class="tag">Método 1 (2f, f = 10)</span><div class="grande" data-campo="m1">6n</div><div data-campo="m1-det"></div></div>
+    <div class="cartao"><span class="tag">Método 2 (f+1, f = 19)</span><div class="grande" data-campo="m2">8n</div><div data-campo="m2-det"></div></div>
+  </div>
+</div>
+<p>Repare que, apesar de intercalar quase o dobro de caminhos, o método 2 quase nunca transfere menos que o método 1: só ganha quando 2⌈log<sub>19</sub> B⌉ &lt; 1 + ⌈log<sub>10</sub> B⌉, o que acontece em poucos valores de B. Em compensação, ele faz <strong>menos comparações</strong>, porque tem menos intercalações e a redistribuição não compara nada.</p>
+</section>
+
+<!-- ============================ 7 ============================ -->
+<section class="cap" id="metodo3">
+<h2><span class="num">7.</span>Método 3: Quicksort externo</h2>
+<p>É o Quicksort adaptado para disco, como no livro do Ziviani. Ele ordena o <strong>próprio arquivo</strong>, sem fitas extras, usando uma <strong>área</strong> de memória com 10 registros mantida em ordem. A área funciona como um "pivô gordo": em vez de um pivô só, um intervalo de notas.</p>
+<h3>Os quatro ponteiros</h3>
+<table class="dados">
+<tr><th>Ponteiro</th><th>Papel</th><th>Anda</th></tr>
+<tr><td><code>Li</code></td><td>próxima leitura no lado de baixo</td><td>para a direita</td></tr>
+<tr><td><code>Ls</code></td><td>próxima leitura no lado de cima</td><td>para a esquerda</td></tr>
+<tr><td><code>Ei</code></td><td>próxima escrita no lado de baixo (os menores)</td><td>para a direita</td></tr>
+<tr><td><code>Es</code></td><td>próxima escrita no lado de cima (os maiores)</td><td>para a esquerda</td></tr>
+</table>
+<p>No C, são três <code>FILE*</code> abertos no mesmo arquivo: <code>ArqLi</code> (lê embaixo), <code>ArqEi</code> (escreve embaixo) e <code>ArqLEs</code> (lê e escreve em cima).</p>
+<h3>A partição</h3>
+<ol class="passos">
+  <li>Lê registros alternando as pontas (cima, baixo, cima...) e coloca na área, até ela ter 9.</li>
+  <li>Para cada registro lido depois disso: se for <strong>maior que Lsup</strong>, grava direto em cima; se for <strong>menor que Linf</strong>, grava direto embaixo.</li>
+  <li>Senão, ele entra na área (que fica com 10) e sai dela o <strong>menor</strong> (gravado embaixo, vira o novo Linf) ou o <strong>maior</strong> (gravado em cima, vira o novo Lsup), escolhendo o lado que tem menos registros, para equilibrar.</li>
+  <li>Se a escrita de um lado alcançou a leitura daquele lado, a próxima leitura tem que ser desse lado, para não sobrescrever um registro ainda não lido.</li>
+  <li>Quando tudo foi lido, a área é gravada no meio. Esses registros já estão na <strong>posição final</strong>.</li>
+  <li>Recursão: ordena o lado esquerdo e o direito, começando pelo <strong>menor</strong> (limita a profundidade da recursão).</li>
+</ol>
+
+<div class="sim" id="sim-quick">
+  <h4>Simulador: Quicksort externo com área de 4 registros</h4>
+  <div class="controles">
+    <button type="button" class="primario" data-acao="passo">Próximo passo</button>
+    <button type="button" data-acao="auto">Executar tudo</button>
+    <button type="button" data-acao="reiniciar">Reiniciar</button>
+    <label>Arquivo: <select data-campo="entrada">
+      <option value="aleatoria">aleatório</option>
+      <option value="crescente">crescente</option>
+      <option value="decrescente">decrescente</option>
+    </select></label>
+  </div>
+  <div class="rotulo-linha" data-area="titulo">Arquivo</div>
+  <div class="celulas" data-area="arquivo"></div>
+  <div class="rotulo-linha">Área (memória interna, sempre ordenada) · <span data-area="limites"></span></div>
+  <div class="celulas" data-area="area"></div>
+  <div class="legenda-sim">
+    <span><i style="background:var(--good-soft);border-color:var(--good)"></i>gravado embaixo (menores)</span>
+    <span><i style="background:var(--warn-soft);border-color:var(--warn)"></i>gravado em cima (maiores)</span>
+    <span><i style="border-style:dashed"></i>já lido, espaço livre</span>
+    <span><i></i>ainda não lido</span>
+    <span><i style="opacity:.45"></i>fora da partição atual</span>
+  </div>
+  <div class="log" data-area="log" aria-live="polite"></div>
+  <div class="rotulo-linha" data-area="contadores"></div>
+</div>
+<h3>Custo</h3>
+<p>Nos arquivos já ordenados (crescente ou decrescente), todo registro lido cai fora do intervalo da área e vai direto para a posição final: <strong>n leituras</strong>, o melhor caso. No aleatório, as leituras crescem como n·log(n/10): 9,3n com 471.705 alunos. Na prática o Quicksort foi o <strong>mais lento</strong> nos arquivos grandes, porque <code>LeSup</code> e <code>EscreveMax</code> fazem um <code>fseek</code> antes de cada transferência, o que impede o uso do buffer de leitura do sistema.</p>
+</section>
+
+<!-- ============================ 8 ============================ -->
+<section class="cap" id="fluxo">
+<h2><span class="num">8.</span>Fluxo do programa</h2>
+<p>O que acontece quando você digita <code>./ordena 2 20000 3</code>:</p>
+<ol class="passos">
+  <li><a href="#arq-main-c-L129"><code>main</code></a> confere se há 3 ou 4 argumentos e converte cada um com <a href="#arq-main-c-L57"><code>lerInteiro</code></a>. Qualquer erro mostra uma mensagem específica e as instruções de uso.</li>
+  <li><a href="#arq-preparo-c-L84"><code>garantirArquivosBase</code></a> cria <code>binario.bin</code>, <code>crescente.bin</code> e <code>decrescente.bin</code> se ainda não existirem (só na primeira vez).</li>
+  <li>Confere se a quantidade pedida não passa do total de alunos (<a href="#arq-preparo-c-L14"><code>contarRegistros</code></a>).</li>
+  <li><a href="#arq-quicksort-c-L190"><code>prepararSituacao</code></a> copia os n primeiros registros da situação para <code>provaoOrdenar.dat</code>.</li>
+  <li>Chama o método: <a href="#arq-int2f-c-L304"><code>executa_metodo_1</code></a>, <a href="#arq-int_f1-c-L214"><code>executa_metodo_2</code></a> ou <a href="#arq-main-c-L98"><code>executaMetodo3</code></a>. Cada um mede o próprio tempo e preenche a struct <a href="#arq-int2f-h-L13"><code>Metricas</code></a>.</li>
+  <li><a href="#arq-int2f-c-L132"><code>finaliza_saida</code></a> converte o resultado em <code>resultado_metodoN.txt</code> (e mostra na tela com <code>-P</code>).</li>
+  <li><a href="#arq-main-c-L66"><code>imprimirResultados</code></a> mostra leituras, escritas, comparações e tempo.</li>
+</ol>
+<h3>O que entra e o que não entra nas métricas</h3>
+<div class="grade-2">
+  <div class="cartao"><h4>Conta</h4>Leituras e escritas de registros feitas pelo método (geração de blocos, intercalações, redistribuições, partições). Comparações entre notas. Tempo do início ao fim da ordenação.</div>
+  <div class="cartao"><h4>Não conta</h4>A conversão do PROVAO.TXT, a cópia dos n registros, a exibição do <code>-P</code>, a gravação do arquivo texto de resultado, e comparações do campo de congelamento.</div>
+</div>
+</section>
+
+<!-- ============================ 9 ============================ -->
+<section class="cap" id="resultados">
+<h2><span class="num">9.</span>Resultados e o que eles mostram</h2>
+<p>Valores com n = 471.705 (tempo = média de 5 execuções; em negrito o melhor de cada linha). As tabelas completas dos 54 experimentos estão no relatório.</p>
+<div class="rolagem">
+<table class="dados">
+<tr><th>Situação</th><th>Métrica</th><th class="n">1: 2f</th><th class="n">2: f+1</th><th class="n">3: Quicksort</th></tr>
+<tr><td>Crescente</td><td>Leituras / n</td><td class="n"><b>1</b></td><td class="n"><b>1</b></td><td class="n"><b>1</b></td></tr>
+<tr><td></td><td>Comparações</td><td class="n"><b>1.434.312</b></td><td class="n">1.469.935</td><td class="n">2.592.015</td></tr>
+<tr><td></td><td>Tempo (ms)</td><td class="n">85,6</td><td class="n"><b>83,3</b></td><td class="n">936,7</td></tr>
+<tr><td>Decrescente</td><td>Leituras / n</td><td class="n">4</td><td class="n">6</td><td class="n"><b>1</b></td></tr>
+<tr><td></td><td>Comparações</td><td class="n">5.368.930</td><td class="n">3.425.907</td><td class="n"><b>2.357.650</b></td></tr>
+<tr><td></td><td>Tempo (ms)</td><td class="n"><b>345,5</b></td><td class="n">526,2</td><td class="n">893,7</td></tr>
+<tr><td>Aleatória</td><td>Leituras / n</td><td class="n"><b>6</b></td><td class="n">8</td><td class="n">9,27</td></tr>
+<tr><td></td><td>Comparações</td><td class="n">10.894.628</td><td class="n"><b>7.946.859</b></td><td class="n">8.091.771</td></tr>
+<tr><td></td><td>Tempo (ms)</td><td class="n"><b>574,4</b></td><td class="n">692,0</td><td class="n">8.656,9</td></tr>
+</table>
+</div>
+<h3>As cinco ideias para lembrar</h3>
+<ol class="passos">
+  <li><strong>Leituras = escritas</strong> em todos os casos: cada registro lido numa passada (ou partição) é gravado de volta uma vez.</li>
+  <li><strong>Arquivo crescente é o melhor caso</strong> das intercalações: a seleção por substituição gera um único bloco e não há intercalação.</li>
+  <li><strong>Decrescente melhor que aleatório nas intercalações</strong>, contrariando a intuição: as notas repetidas (no máximo 1.001 valores) ficam juntas no arquivo decrescente, e cada grupo de notas iguais estende o bloco atual (só congela quem for <em>menor</em>). Sobram cerca de mil blocos, não 47 mil.</li>
+  <li><strong>O método 2 transfere mais que o 1</strong> por causa da redistribuição (8n contra 6n no aleatório), mas <strong>compara menos</strong>.</li>
+  <li><strong>O Quicksort é o mais lento em tempo</strong> não por transferir mais, mas porque cada transferência faz um <code>fseek</code> e vira uma chamada ao sistema (cerca de 2 µs por registro, contra 0,2 µs nas intercalações). Com 100 registros, por outro lado, ele é o mais rápido, porque não precisa criar 20 fitas.</li>
+</ol>
+</section>
+
+<!-- ============================ 10 ============================ -->
+<section class="cap largo" id="codigo">
+<h2><span class="num">10.</span>O código, linha por linha</h2>
+<p>Cada arquivo do projeto aparece abaixo com uma explicação ao lado de cada linha. Comentários e chaves de fechamento têm explicações curtas e automáticas. Os links das seções anteriores levam direto para a linha certa.</p>
+<div class="dica">Ordem sugerida de leitura: <code>registro.h</code> → <code>main.c</code> → <code>preparo.c</code> → <code>int2f.c</code> (método 1, com o heap e a seleção por substituição) → <code>int_f1.c</code> (método 2) → <code>quicksort.c</code> (método 3).</div>
+<!--CODIGO-->
+</section>
+
+<!-- ============================ 11 ============================ -->
+<section class="cap" id="perguntas">
+<h2><span class="num">11.</span>Perguntas que podem cair na apresentação</h2>
+<details><summary>Por que contar transferências em vez de só medir o tempo?</summary><div class="resp">Porque o acesso à memória externa é a operação dominante em ordenação externa, e o tempo depende da máquina, do cache do sistema e do tipo de disco. O número de transferências é uma medida independente de máquina, que permite comparar os métodos de forma justa.</div></details>
+<details><summary>Por que a seleção por substituição gera blocos maiores que a memória?</summary><div class="resp">Porque um registro lido que é maior ou igual ao último gravado ainda entra no bloco atual. Enquanto chegam registros "maiores", o bloco continua crescendo além de M. No arquivo aleatório, o tamanho médio é 2M (resultado clássico, Knuth). No crescente, o bloco é o arquivo inteiro.</div></details>
+<details><summary>O que acontece com o arquivo decrescente na seleção por substituição?</summary><div class="resp">Em teoria é o pior caso: todo registro novo é menor que o anterior e é congelado, gerando blocos de exatamente M registros. Na prática, com as notas repetidas do Provão, os registros de mesma nota ficam juntos e não são congelados (só congela quem é estritamente menor), então os blocos ficam bem maiores e sobram cerca de mil blocos.</div></details>
+<details><summary>Qual a diferença entre o método 2f e o f+1?</summary><div class="resp">No 2f, metade das fitas é entrada e metade é saída, e os papéis se invertem a cada passada: os blocos saem já distribuídos para a próxima passada. No f+1, quase todas as fitas são de entrada (19 caminhos), mas há só uma de saída, então depois de cada intercalação é preciso redistribuir os blocos, o que custa mais n leituras e n escritas.</div></details>
+<details><summary>A intercalação f+1 é a mesma coisa que a intercalação polifásica?</summary><div class="resp">Não. A polifásica também usa f+1 fitas, mas distribui os blocos de forma desigual (seguindo números de Fibonacci generalizados) para evitar a redistribuição. A balanceada f+1, pedida no trabalho, distribui os blocos igualmente e faz a redistribuição a cada passada.</div></details>
+<details><summary>Como o método 2 sabe onde termina cada bloco numa fita?</summary><div class="resp">O último registro de cada bloco é gravado com o campo <code>marcado = 1</code>. A intercalação para de ler uma fita quando encontra essa marca, e a redistribuição copia registro por registro até a marca. Como a marca está dentro do próprio registro, não custa nenhuma transferência extra.</div></details>
+<details><summary>Por que o Quicksort externo abre o mesmo arquivo três vezes?</summary><div class="resp">Porque ele precisa de três posições independentes no arquivo ao mesmo tempo: uma para ler embaixo (Li), uma para escrever embaixo (Ei) e uma para ler e escrever em cima (Ls/Es). Cada <code>FILE*</code> guarda a sua posição. Como cada um tem seu próprio buffer, o código faz <code>fflush</code> no início e no fim de cada partição para que um ponteiro não leia dados desatualizados.</div></details>
+<details><summary>Por que o Quicksort ordena primeiro o subarquivo menor?</summary><div class="resp">Para limitar a profundidade da recursão a cerca de log<sub>2</sub> n chamadas, o que limita a memória usada pela pilha de chamadas.</div></details>
+<details><summary>Por que o Quicksort foi o mais lento se não transfere muito mais?</summary><div class="resp">Cada leitura pelo lado de cima e cada escrita no lado de cima é precedida de um <code>fseek</code>, que descarta o buffer do <code>stdio</code>. Cada transferência vira uma chamada ao sistema operacional. As intercalações leem as fitas em sequência e aproveitam o buffer, então cada registro custa cerca de dez vezes menos tempo.</div></details>
+<details><summary>Por que comparações do campo congelado não são contadas?</summary><div class="resp">O enunciado pede comparações entre valores do campo de ordenação (a nota). O teste de congelamento compara um indicador interno do algoritmo, não as notas, então a função <code>compara_registros</code> só incrementa o contador quando de fato compara as notas.</div></details>
+<details><summary>Por que o tempo dos métodos 1 e 2 é cerca de 1 ms até com 100 registros?</summary><div class="resp">Porque criar e apagar 20 arquivos de fita tem um custo fixo que, com poucos registros, é maior que a própria ordenação. O Quicksort não cria fitas, por isso é o mais rápido nos tamanhos pequenos.</div></details>
+<details><summary>Qual método você escolheria e por quê?</summary><div class="resp">Para arquivos grandes e sem ordem conhecida, a intercalação 2f: menos transferências e menor tempo nos testes. Se o arquivo provavelmente já estiver quase em ordem decrescente, o Quicksort externo faz menos transferências (n), mas precisaria de um buffer próprio para ser competitivo em tempo. A f+1 vale a pena quando comparar é caro e transferir é barato.</div></details>
+</section>
+
+<!-- ============================ 12 ============================ -->
+<section class="cap" id="glossario">
+<h2><span class="num">12.</span>Glossário</h2>
+<table class="dados">
+<tr><th>Termo</th><th>Significado</th></tr>
+<tr><td>Bloco (corrida)</td><td>Sequência de registros já em ordem crescente dentro de uma fita.</td></tr>
+<tr><td>Fita</td><td>Arquivo temporário lido e gravado em sequência.</td></tr>
+<tr><td>Passada</td><td>Leitura e regravação de todos os registros uma vez.</td></tr>
+<tr><td>f</td><td>Número de caminhos intercalados de uma vez (fitas de entrada).</td></tr>
+<tr><td>Congelado / marcado</td><td>Registro que pertence ao próximo bloco (geração) ou, no método 2, o último registro de um bloco na fita.</td></tr>
+<tr><td>Heap mínimo</td><td>Vetor organizado como árvore em que cada pai é menor que os filhos; a raiz é o menor.</td></tr>
+<tr><td>Área</td><td>No Quicksort externo, a memória interna ordenada que funciona como pivô.</td></tr>
+<tr><td>Linf / Lsup</td><td>Limites da área: registros abaixo de Linf vão direto para a esquerda, acima de Lsup direto para a direita.</td></tr>
+<tr><td>Transferência</td><td>Um registro passando entre memória externa e interna (leitura ou escrita).</td></tr>
+<tr><td><code>fseek</code></td><td>Posiciona a leitura ou escrita num byte específico do arquivo.</td></tr>
+<tr><td><code>fflush</code></td><td>Força a gravação no arquivo do que está no buffer de memória.</td></tr>
+</table>
+<footer>Guia de estudo do Trabalho Prático II de BCC203 (Estrutura de Dados II, UFOP). Gerado a partir do código do repositório com <code>docs/gerar_site.py</code>.</footer>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  /* ---------- tema ---------- */
+  var raiz = document.documentElement, botaoTema = document.getElementById('botao-tema');
+  var temas = ['auto', 'light', 'dark'], nomes = { auto: 'automático', light: 'claro', dark: 'escuro' };
+  function aplicarTema(t) {
+    if (t === 'auto') raiz.removeAttribute('data-theme'); else raiz.setAttribute('data-theme', t);
+    botaoTema.textContent = 'Tema: ' + nomes[t];
+    try { localStorage.setItem('tema', t); } catch (e) {}
+  }
+  var temaSalvo = 'auto';
+  try { temaSalvo = localStorage.getItem('tema') || 'auto'; } catch (e) {}
+  aplicarTema(temas.indexOf(temaSalvo) >= 0 ? temaSalvo : 'auto');
+  botaoTema.addEventListener('click', function () {
+    var atual = raiz.getAttribute('data-theme') || 'auto';
+    aplicarTema(temas[(temas.indexOf(atual) + 1) % temas.length]);
+  });
+
+  /* ---------- sumario ativo ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.lateral ol > li > a'));
+  var secoes = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (a) { a.classList.toggle('ativo', a.getAttribute('href') === '#' + e.target.id); });
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    secoes.forEach(function (s) { if (s) obs.observe(s); });
+  }
+
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+  function fmt(x) { return Number(x).toLocaleString('pt-BR'); }
+  var BASES = {
+    aleatoria: [52, 18, 75, 40, 33, 90, 12, 61, 47, 85, 23, 70, 15, 58],
+    crescente: [12, 15, 18, 23, 33, 40, 47, 52, 58, 61, 70, 75, 85, 90],
+    decrescente: [90, 85, 75, 70, 61, 58, 52, 47, 40, 33, 23, 18, 15, 12]
+  };
+
+  /* ---------- simulador: selecao por substituicao ---------- */
+  (function () {
+    var raizSim = document.getElementById('sim-selecao'); if (!raizSim) return;
+    var M = 3, estado, timer = null;
+    var q = function (s) { return raizSim.querySelector(s); };
+    function iniciar() {
+      var entrada = BASES[q('[data-campo=entrada]').value].slice();
+      estado = { entrada: entrada, mem: [], blocos: [[]], novo: null, fim: false,
+        msg: 'A memória comporta ' + M + ' registros. Clique em "Próximo passo" para começar lendo os ' + M + ' primeiros.', iniciado: false };
+      desenhar();
+    }
+    function menorIndice() {
+      var k = -1;
+      estado.mem.forEach(function (r, i) {
+        if (k < 0) { k = i; return; }
+        var a = r, b = estado.mem[k];
+        if (a.cong !== b.cong ? !a.cong : a.nota < b.nota) k = i;
+      });
+      return k;
+    }
+    function passo() {
+      if (estado.fim) return;
+      estado.novo = null;
+      if (!estado.iniciado) {
+        while (estado.mem.length < M && estado.entrada.length) estado.mem.push({ nota: estado.entrada.shift(), cong: false });
+        estado.iniciado = true;
+        estado.msg = 'Memória cheia com os ' + estado.mem.length + ' primeiros registros. O menor (' + estado.mem[menorIndice()].nota + ') será o próximo a sair.';
+        return desenhar();
+      }
+      if (!estado.mem.length) { estado.fim = true; estado.msg = 'Fim: a entrada acabou e a memória esvaziou. Foram gerados ' + estado.blocos.length + ' blocos.'; return desenhar(); }
+      var k = menorIndice(), sai = estado.mem[k];
+      estado.blocos[estado.blocos.length - 1].push(sai.nota);
+      var msg = 'Grava ' + sai.nota + ' no bloco ' + estado.blocos.length + '. ';
+      if (estado.entrada.length) {
+        var x = estado.entrada.shift(), cong = x < sai.nota;
+        estado.mem[k] = { nota: x, cong: cong }; estado.novo = k;
+        msg += 'Lê ' + x + (cong ? ', que é menor que ' + sai.nota + ': fica congelado (vai para o próximo bloco).' : ', que é maior ou igual a ' + sai.nota + ': entra no bloco atual.');
+      } else {
+        estado.mem.splice(k, 1);
+        msg += 'A entrada acabou, então a memória diminui.';
+      }
+      if (estado.mem.length && estado.mem.every(function (r) { return r.cong; })) {
+        estado.mem.forEach(function (r) { r.cong = false; });
+        estado.blocos.push([]);
+        msg += ' Agora todos da memória estão congelados: o bloco ' + (estado.blocos.length - 1) + ' termina, todos são descongelados e começa o bloco ' + estado.blocos.length + ' na próxima fita.';
+      }
+      estado.msg = msg; desenhar();
+    }
+    function desenhar() {
+      var ent = q('[data-area=entrada]'); ent.innerHTML = '';
+      estado.entrada.forEach(function (x) { ent.appendChild(el('div', 'cel', x)); });
+      if (!estado.entrada.length) ent.appendChild(el('span', '', '(vazia)'));
+      var mem = q('[data-area=memoria]'); mem.innerHTML = '';
+      var k = estado.mem.length ? menorIndice() : -1;
+      estado.mem.forEach(function (r, i) {
+        mem.appendChild(el('div', 'cel' + (r.cong ? ' cong' : '') + (i === k && estado.iniciado ? ' min' : '') + (i === estado.novo ? ' novo' : ''), r.nota));
+      });
+      if (!estado.mem.length) mem.appendChild(el('span', '', estado.iniciado ? '(vazia)' : '(ainda não lida)'));
+      var bl = q('[data-area=blocos]'); bl.innerHTML = '';
+      estado.blocos.forEach(function (b, i) {
+        if (!b.length && i === estado.blocos.length - 1 && estado.fim) return;
+        var linha = el('div', 'bloco'); linha.appendChild(el('span', 'nome', 'Bloco ' + (i + 1)));
+        b.forEach(function (x) { linha.appendChild(el('div', 'cel', x)); });
+        bl.appendChild(linha);
+      });
+      q('[data-area=log]').textContent = estado.msg;
+    }
+    raizSim.addEventListener('click', function (ev) {
+      var acao = ev.target.getAttribute('data-acao'); if (!acao) return;
+      if (timer) { clearInterval(timer); timer = null; }
+      if (acao === 'passo') passo();
+      if (acao === 'reiniciar') iniciar();
+      if (acao === 'auto') timer = setInterval(function () { if (estado.fim) { clearInterval(timer); timer = null; } else passo(); }, 450);
+    });
+    q('[data-campo=entrada]').addEventListener('change', function () { if (timer) { clearInterval(timer); timer = null; } iniciar(); });
+    iniciar();
+  })();
+
+  /* ---------- calculadora de passadas ---------- */
+  (function () {
+    var raizCalc = document.getElementById('sim-passadas'); if (!raizCalc) return;
+    var q = function (s) { return raizCalc.querySelector(s); }, faixa = raizCalc.querySelector('input');
+    function logb(x, b) { return Math.log(x) / Math.log(b); }
+    function teto(x) { return Math.ceil(x - 1e-9); }
+    function atualizar() {
+      var n = Math.round(Math.pow(10, parseFloat(faixa.value)));
+      if (n > 471705) n = 471705;
+      q('[data-campo=n-texto]').textContent = fmt(n);
+      var b1 = Math.ceil(n / 20), b2 = Math.ceil(n / 38);
+      var k1 = b1 <= 1 ? 0 : teto(logb(b1, 10)), p1 = 1 + k1;
+      var k2 = b2 <= 1 ? 0 : teto(logb(b2, 19)), p2 = b2 <= 1 ? 1 : 2 * k2;
+      q('[data-campo=m1]').textContent = p1 + 'n';
+      q('[data-campo=m1-det]').textContent = '≈ ' + fmt(b1) + ' blocos · 1 geração + ' + k1 + ' intercalações = ' + fmt(p1 * n) + ' leituras';
+      q('[data-campo=m2]').textContent = p2 + 'n';
+      q('[data-campo=m2-det]').textContent = '≈ ' + fmt(b2) + ' blocos · 1 geração + ' + k2 + ' intercalações + ' + Math.max(0, k2 - 1) + ' redistribuições = ' + fmt(p2 * n) + ' leituras';
+    }
+    faixa.addEventListener('input', atualizar); atualizar();
+  })();
+
+  /* ---------- simulador: Quicksort externo (mesma logica do quicksort.c) ---------- */
+  (function () {
+    var raizSim = document.getElementById('sim-quick'); if (!raizSim) return;
+    var TAMAREA = 4, passos = [], atual = 0, timer = null;
+    var q = function (s) { return raizSim.querySelector(s); };
+    function gerar(base) {
+      var A = [null].concat(base), lst = [], cont = { l: 0, e: 0, c: 0 };
+      function foto(p, msg) {
+        lst.push({ A: A.slice(), esq: p.esq, dir: p.dir, Li: p.Li, Ls: p.Ls, Ei: p.Ei, Es: p.Es, area: p.area.slice(),
+          Linf: p.Linf, Lsup: p.Lsup, msg: msg, l: cont.l, e: cont.e, c: cont.c, fim: false });
+      }
+      function inserir(p, x) {
+        var i = p.area.length - 1;
+        while (i >= 0) { cont.c++; if (p.area[i] > x) i--; else break; }
+        p.area.splice(i + 1, 0, x);
+      }
+      function leSup(p) { var x = A[p.Ls]; p.Ls--; p.ondeLer = false; cont.l++; return x; }
+      function leInf(p) { var x = A[p.Li]; p.Li++; p.ondeLer = true; cont.l++; return x; }
+      function escMax(p, r) { A[p.Es] = r; p.Es--; cont.e++; }
+      function escMin(p, r) { A[p.Ei] = r; p.Ei++; cont.e++; }
+      function particao(esq, dir) {
+        var p = { esq: esq, dir: dir, Ls: dir, Es: dir, Li: esq, Ei: esq, area: [], Linf: -Infinity, Lsup: Infinity, ondeLer: true, i: esq - 1, j: dir + 1 };
+        foto(p, 'Partição das posições ' + esq + ' a ' + dir + '. Leitura e escrita de baixo começam em ' + esq + '; as de cima em ' + dir + '.');
+        while (p.Ls >= p.Li) {
+          var x, lado;
+          if (p.area.length < TAMAREA - 1) {
+            lado = p.ondeLer ? 'cima' : 'baixo';
+            x = p.ondeLer ? leSup(p) : leInf(p);
+            inserir(p, x);
+            foto(p, 'Lê ' + x + ' por ' + lado + ' e coloca na área (enchendo até ' + (TAMAREA - 1) + ').');
+            continue;
+          }
+          var motivo = '';
+          if (p.Ls === p.Es) { x = leSup(p); lado = 'cima'; motivo = ' (obrigatório: a escrita de cima alcançou a leitura de cima)'; }
+          else if (p.Li === p.Ei) { x = leInf(p); lado = 'baixo'; motivo = ' (obrigatório: a escrita de baixo alcançou a leitura de baixo)'; }
+          else if (p.ondeLer) { x = leSup(p); lado = 'cima'; }
+          else { x = leInf(p); lado = 'baixo'; }
+          cont.c++;
+          if (x > p.Lsup) { p.j = p.Es; escMax(p, x); foto(p, 'Lê ' + x + ' por ' + lado + motivo + '. É maior que Lsup = ' + p.Lsup + ': grava direto em cima.'); continue; }
+          cont.c++;
+          if (x < p.Linf) { p.i = p.Ei; escMin(p, x); foto(p, 'Lê ' + x + ' por ' + lado + motivo + '. É menor que Linf = ' + p.Linf + ': grava direto embaixo.'); continue; }
+          inserir(p, x);
+          var r, msg = 'Lê ' + x + ' por ' + lado + motivo + '. Está entre os limites: entra na área, que fica cheia. ';
+          if (p.Ei - esq < dir - p.Es) { r = p.area.shift(); escMin(p, r); p.Linf = r; msg += 'O lado de baixo tem menos registros: sai o menor da área (' + r + '), gravado embaixo, e vira o novo Linf.'; }
+          else { r = p.area.pop(); escMax(p, r); p.Lsup = r; msg += 'O lado de cima tem menos (ou igual): sai o maior da área (' + r + '), gravado em cima, e vira o novo Lsup.'; }
+          foto(p, msg);
+        }
+        var grav = [];
+        while (p.Ei <= p.Es) { var r2 = p.area.shift(); escMin(p, r2); grav.push(r2); }
+        foto(p, 'Tudo lido. A área (' + grav.join(', ') + ') é gravada no meio, já na posição final. Lado esquerdo: ' + (p.i >= esq ? esq + ' a ' + p.i : 'vazio') + '; lado direito: ' + (p.j <= dir ? p.j + ' a ' + dir : 'vazio') + '.');
+        return [p.i, p.j];
+      }
+      function qs(esq, dir) {
+        if (dir - esq < 1) return;
+        var ij = particao(esq, dir), i = ij[0], j = ij[1];
+        if (i - esq < dir - j) { qs(esq, i); qs(j, dir); } else { qs(j, dir); qs(esq, i); }
+      }
+      qs(1, base.length);
+      var ult = lst[lst.length - 1];
+      lst.push({ A: A.slice(), esq: 1, dir: base.length, Li: null, Ls: null, Ei: null, Es: null, area: [], Linf: null, Lsup: null,
+        msg: 'Arquivo ordenado. Total: ' + cont.l + ' leituras, ' + cont.e + ' escritas e ' + cont.c + ' comparações para ' + base.length + ' registros.', l: cont.l, e: cont.e, c: cont.c, fim: true });
+      return lst;
+    }
+    function iniciar() { passos = gerar(BASES[q('[data-campo=entrada]').value]); atual = 0; desenhar(); }
+    function desenhar() {
+      var s = passos[atual], n = s.A.length - 1;
+      var arq = q('[data-area=arquivo]'); arq.innerHTML = '';
+      for (var k = 1; k <= n; k++) {
+        var cls = 'cel';
+        if (s.fim) cls += ' final';
+        else if (k < s.esq || k > s.dir) cls += ' fora';
+        else if (k < s.Ei) cls += ' esq';
+        else if (k > s.Es) cls += ' dir';
+        else if (k < s.Li || k > s.Ls) cls += ' livre';
+        var txt = (!s.fim && k >= s.esq && k <= s.dir && k >= s.Ei && k <= s.Es && (k < s.Li || k > s.Ls)) ? '·' : s.A[k];
+        var col = el('div', 'coluna'); col.appendChild(el('div', cls, txt));
+        var marc = [];
+        if (!s.fim) {
+          if (k === s.Li) marc.push('Li'); if (k === s.Ei) marc.push('Ei');
+          if (k === s.Ls) marc.push('Ls'); if (k === s.Es) marc.push('Es');
+        }
+        var pos = el('div', 'pos'); pos.appendChild(document.createTextNode(k));
+        if (marc.length) { pos.appendChild(document.createElement('br')); pos.appendChild(el('b', '', marc.join(' '))); }
+        col.appendChild(pos); arq.appendChild(col);
+      }
+      var ar = q('[data-area=area]'); ar.innerHTML = '';
+      s.area.forEach(function (x) { ar.appendChild(el('div', 'cel', x)); });
+      if (!s.area.length) ar.appendChild(el('span', '', '(vazia)'));
+      q('[data-area=limites]').textContent = s.fim ? '' : 'Linf = ' + (s.Linf === -Infinity ? '−∞' : s.Linf) + ', Lsup = ' + (s.Lsup === Infinity ? '+∞' : s.Lsup);
+      q('[data-area=titulo]').textContent = s.fim ? 'Arquivo final' : 'Arquivo (partição atual: posições ' + s.esq + ' a ' + s.dir + ')';
+      q('[data-area=log]').textContent = 'Passo ' + (atual + 1) + ' de ' + passos.length + ': ' + s.msg;
+      q('[data-area=contadores]').textContent = 'Até aqui: ' + s.l + ' leituras · ' + s.e + ' escritas · ' + s.c + ' comparações';
+    }
+    raizSim.addEventListener('click', function (ev) {
+      var acao = ev.target.getAttribute('data-acao'); if (!acao) return;
+      if (timer) { clearInterval(timer); timer = null; }
+      if (acao === 'passo' && atual < passos.length - 1) { atual++; desenhar(); }
+      if (acao === 'reiniciar') { atual = 0; desenhar(); }
+      if (acao === 'auto') timer = setInterval(function () { if (atual >= passos.length - 1) { clearInterval(timer); timer = null; } else { atual++; desenhar(); } }, 700);
+    });
+    q('[data-campo=entrada]').addEventListener('change', function () { if (timer) { clearInterval(timer); timer = null; } iniciar(); });
+    iniciar();
+  })();
+
+  /* ---------- realce da linha ao seguir um link para o codigo ---------- */
+  function realcar() {
+    document.querySelectorAll('tr.realce').forEach(function (t) { t.classList.remove('realce'); });
+    var h = location.hash; if (!/-L\d+$/.test(h)) return;
+    var linha = document.getElementById(h.slice(1)); if (linha) linha.classList.add('realce');
+  }
+  window.addEventListener('hashchange', realcar); realcar();
+})();
+</script>
+</body>
+</html>

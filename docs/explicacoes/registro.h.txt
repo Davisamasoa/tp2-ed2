@@ -1,0 +1,14 @@
+= Define o **registro**, ou seja, o formato de cada aluno dentro dos arquivos binários. Os três métodos usam exatamente essa mesma estrutura. No arquivo binário, cada registro ocupa 104 bytes (o tamanho da struct, incluindo os bytes de alinhamento que o compilador acrescenta).
+1-2: "Guarda de inclusão": se este cabeçalho for incluído duas vezes no mesmo `.c` (direta ou indiretamente), a segunda vez é ignorada. Sem isso, a struct seria definida duas vezes e daria erro de compilação.
+10: Começa a definição de um novo tipo com `typedef struct`: no fim (linha 20) ele recebe o nome `Registro`.
+11: Número de inscrição do aluno (colunas 1 a 8 do PROVAO.TXT), guardado como inteiro longo.
+12: Nota do aluno (colunas 10 a 14), um número real de 0,0 a 100,0. É a **chave de ordenação**: todos os métodos ordenam por este campo.
+13: Estado (UF), 2 letras mais o `'\0'` que termina a string em C, por isso 3 posições.
+14: Cidade, até 50 caracteres mais o `'\0'`.
+15: Curso, até 30 caracteres mais o `'\0'`.
+16: Uma `union` faz vários campos dividirem o **mesmo espaço** de memória. Aqui ela tem dois nomes para o mesmo `int`.
+17: Nome usado pelo método 1: `congelado = 1` indica que o registro pertence ao próximo bloco na seleção por substituição.
+18: Nome usado pelo método 2: `marcado = 1` indica que o registro é o último do seu bloco dentro de uma fita (ou, durante a geração, que ele pertence ao próximo bloco).
+20: Fecha a struct e dá a ela o nome `Registro`.
+22: Cria um segundo nome, `TipoRegistro`, para o mesmo tipo. O código do Quicksort externo foi escrito com esse nome (como no livro do Ziviani), e assim os dois nomes funcionam.
+24: Fecha a guarda de inclusão aberta na linha 1.

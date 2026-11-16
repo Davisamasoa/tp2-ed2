@@ -1,0 +1,68 @@
+= Prepara os arquivos de que os experimentos precisam. Converte o PROVAO.TXT (texto) em `binario.bin` (registros binários, ordem original), depois cria `crescente.bin` (ordenado por nota) e `decrescente.bin` (ordem inversa). Isso só acontece na primeira execução; depois os arquivos são reaproveitados.
+1: Entrada e saída (`fopen`, `fgets`, `fwrite`...).
+2: `atol` e `atof`, que convertem texto em número.
+3: `strncpy`, `strlen` e `memset`.
+4: Inclui o próprio cabeçalho (constante `ARQ_BIN_BASE`).
+5: Inclui o Quicksort externo, usado para gerar o arquivo crescente.
+7: Função auxiliar: diz se um arquivo existe. `static` porque só é usada aqui.
+8: Tenta abrir o arquivo para leitura.
+9: Se não abriu, o arquivo não existe: devolve 0.
+10: Se abriu, fecha (só queríamos saber se existia)...
+11: ...e devolve 1.
+14: Conta quantos registros existem num arquivo binário.
+15: Abre o arquivo.
+16: Se não abriu, devolve -1 (erro).
+17: Leva a posição de leitura para o fim do arquivo.
+18: `ftell` diz em que byte estamos: no fim, isso é o tamanho do arquivo.
+19: Fecha o arquivo.
+20: Tamanho em bytes dividido pelo tamanho de um registro (104) = número de registros.
+24: Converte o arquivo texto em binário.
+26: Tenta abrir com o nome original, em maiúsculas.
+27: Se não achou, tenta em minúsculas (em sistemas como o Linux, maiúsculas e minúsculas fazem diferença no nome do arquivo).
+28: Se não achou nenhum dos dois, avisa e devolve erro.
+29: Cria o arquivo binário para escrita (`"wb"`).
+30: Se não conseguiu criar, avisa, fecha o texto e devolve erro.
+32: `linha` recebe cada linha do texto; `temp` é um espaço auxiliar para converter números.
+33: Lê o arquivo texto linha por linha. `fgets` devolve `NULL` no fim do arquivo, o que encerra o laço.
+34: Pula linhas curtas demais (por exemplo uma linha vazia no fim), que não têm todos os campos.
+35: Cria um registro novo.
+36: Zera todos os bytes do registro, para não gravar lixo de memória no arquivo.
+38: Copia as colunas 1 a 8 (posições 0 a 7 da string) para `temp`, termina a string com `'\0'` e converte em número: a inscrição.
+39: Copia as colunas 10 a 14 (posições 9 a 13) e converte em número real: a nota.
+40: Copia as colunas 16 e 17: o estado.
+41: Copia as colunas 19 a 68: a cidade.
+42: Copia as colunas 70 a 99: o curso.
+44: Grava o registro inteiro (104 bytes) no arquivo binário.
+46: Fecha o arquivo texto.
+47: Fecha o arquivo binário.
+48: Sucesso.
+52: Gera `crescente.bin` e `decrescente.bin`.
+53: Abre o binário original para leitura.
+54: Cria `crescente.bin`.
+55: Se algum dos dois falhou, avisa, fecha o que abriu e devolve erro.
+57: Registro auxiliar para a cópia.
+58: Conta quantos registros foram copiados.
+59: Copia todos os registros do original para `crescente.bin`, um por vez.
+60: Fecha o original.
+61: Fecha a cópia.
+63-65: Abre `crescente.bin` três vezes, como o Quicksort externo exige (ponteiros Li, Ei e LEs).
+66: Se algum falhou, avisa e devolve erro.
+67: Ordena a cópia inteira (posições 1 a `total`) com o próprio Quicksort externo. Agora ela está em ordem crescente de nota.
+68-70: Fecha os três ponteiros.
+72: Abre o arquivo crescente para leitura.
+73: Cria o arquivo decrescente.
+74: Se algum falhou, avisa, fecha o que abriu e devolve erro.
+75: Percorre os registros do último para o primeiro.
+76: Posiciona a leitura exatamente no registro de índice `i` (índice vezes 104 bytes).
+77: Lê esse registro e grava no decrescente. Como lemos de trás para frente, o resultado sai em ordem decrescente.
+79: Fecha o decrescente.
+80: Fecha o crescente.
+81: Sucesso.
+84: Função pública chamada pelo `main`: garante que os três arquivos base existam.
+85: Se ainda não existe `binario.bin`...
+86: ...avisa que vai gerar...
+87: ...e converte o texto. Se der erro, devolve -1.
+89: Se falta o crescente ou o decrescente...
+90: ...avisa...
+91: ...e gera os dois. Se der erro, devolve -1.
+93: Tudo pronto.

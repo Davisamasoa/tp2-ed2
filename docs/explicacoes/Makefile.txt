@@ -1,0 +1,18 @@
+= O Makefile é a "receita" de compilação. Em vez de digitar vários comandos `gcc` à mão, você digita só `make` e ele compila cada arquivo `.c` em um objeto `.o` e depois junta (liga) todos no executável `ordena`. Ele também só recompila o que mudou.
+5: `CC` é uma variável do Makefile que guarda qual compilador usar: o `gcc`. Depois ela é usada como `$(CC)`.
+6: `CFLAGS` são as opções passadas ao compilador. `-Wall` e `-Wextra` ligam quase todos os avisos (ajudam a achar erros bobos), e `-O2` liga as otimizações, importante porque o trabalho mede tempo de execução.
+7: `OBJS` lista os cinco arquivos objeto (`.o`) que formam o programa: um para cada arquivo `.c`.
+9: Regra principal: o alvo `ordena` (o executável) depende de todos os objetos. Se algum `.o` mudar, o `ordena` é refeito.
+10: Comando que liga os objetos e gera o executável. `$@` é o nome do alvo (`ordena`). Fica: `gcc -Wall -Wextra -O2 -o ordena main.o quicksort.o ...`. (No Makefile, a linha de comando precisa começar com TAB.)
+12: Regra genérica: qualquer `arquivo.o` é feito a partir do `arquivo.c` de mesmo nome.
+13: Compila um `.c` sem ligar (`-c`). `$<` é a primeira dependência, ou seja, o `.c`.
+15: Diz que `main.o` também depende dos cabeçalhos que o `main.c` inclui: se você mudar `registro.h`, por exemplo, o `main.o` é recompilado.
+16: Mesma ideia para `int_f1.o` (método 2): depende do seu `.c` e dos cabeçalhos que usa.
+17: Dependências de `quicksort.o` (método 3).
+18: Dependências de `int2f.o` (método 1).
+19: Dependências de `preparo.o` (preparação dos arquivos).
+21: Alvo `clean`: não gera nada, serve para limpar. Rodar `make clean` executa a linha de baixo.
+22: Apaga os objetos, o executável, o arquivo de trabalho, os resultados em texto e as fitas temporárias que porventura sobraram.
+24: `make cleanall` faz o `clean` e mais a linha de baixo.
+25: Apaga também os três binários base gerados a partir do PROVAO.TXT (eles são recriados na próxima execução).
+27: `.PHONY` avisa ao make que `clean` e `cleanall` não são arquivos de verdade, então ele sempre executa esses alvos quando pedidos.

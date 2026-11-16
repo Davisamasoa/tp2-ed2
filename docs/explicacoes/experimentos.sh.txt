@@ -1,0 +1,19 @@
+= Script de shell que roda os 54 experimentos (3 métodos x 6 quantidades x 3 situações) e grava as métricas em `resultados.csv`, que serviram de base para o relatório.
+1: "Shebang": diz ao sistema que este arquivo deve ser executado pelo `bash`.
+5: `set -e` faz o script parar no primeiro comando que falhar, em vez de continuar com resultados errados.
+6: Entra na pasta onde o próprio script está, para funcionar mesmo se for chamado de outro lugar.
+7: Compila o programa (se precisar). `-s` deixa o make silencioso.
+9: Nome do arquivo de saída guardado numa variável.
+10: Cria o CSV escrevendo a linha de cabeçalho (o `>` apaga o conteúdo anterior).
+12: Laço externo: método 1, 2 e 3.
+13: Laço do meio: as seis quantidades pedidas no enunciado.
+14: Laço interno: as três situações (1 ascendente, 2 descendente, 3 aleatória).
+15: Executa o programa e guarda tudo o que ele imprimiu na variável `out`.
+17: Define uma pequena função `val` que procura na saída a linha que contém um texto (por exemplo "leitura") e devolve só o número depois dos dois-pontos.
+18: Monta a linha do CSV: método, n, situação e as quatro métricas extraídas da saída.
+19: Mostra a linha na tela e, ao mesmo tempo, acrescenta no CSV (`tee -a`).
+21: Se a variável `VERIFICA` estiver definida, chama um verificador externo para conferir se a saída ficou ordenada. Foi usado durante o desenvolvimento.
+22: Fecha o laço das situações.
+23: Fecha o laço das quantidades.
+24: Fecha o laço dos métodos.
+25: Avisa que terminou e onde estão os resultados.

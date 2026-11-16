@@ -15,3 +15,6 @@ resultado_metodo*.txt
 # Sistema e anotacoes locais
 .DS_Store
 PROGRESS.md
+
+# Python
+__pycache__/

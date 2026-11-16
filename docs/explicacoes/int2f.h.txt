@@ -1,0 +1,30 @@
+= Cabeçalho do método 1 (intercalação balanceada com 2f fitas). Define os parâmetros do enunciado, a struct de métricas usada pelos três métodos e declara as funções do método.
+1-2: Guarda de inclusão.
+4: `stdio.h` para o tipo `FILE`.
+5: Inclui o `Registro`.
+8: Memória interna do método 1: cabem no máximo 10 registros (é o tamanho do heap).
+9: Quantas fitas ficam de cada lado: 10 de entrada e 10 de saída (é o **f** do "2f").
+10: Total de fitas: 2f = 20.
+13: Começa a struct que guarda as quatro métricas pedidas no enunciado.
+14: Contador de leituras: registros trazidos da memória externa (arquivo ou fita) para a interna.
+15: Contador de escritas: registros gravados da memória interna na externa.
+16: Contador de comparações entre notas.
+17: Tempo de execução, em segundos.
+18: Fecha a struct e dá o nome `Metricas`.
+23: Struct usada na fase de intercalação: cada posição do heap precisa lembrar de qual fita o registro veio, para saber de onde ler o próximo.
+24: O registro em si.
+25: O número da fita de entrada de onde ele saiu.
+26: Fecha a struct, com o nome `NoIntercalacao`.
+29: Declara a comparação usada no heap da geração de blocos (considera congelamento e nota).
+30: Declara `refaz_heap`, que conserta o heap depois que a raiz muda.
+31: Declara `constroi_heap`, que transforma um vetor qualquer em heap.
+32: Declara a leitura de um registro que também conta a transferência.
+33: Declara a geração dos blocos por seleção por substituição.
+34: Declara a função que converte o binário final em texto (e imprime com `-P`). Os três métodos usam essa função.
+37: Comparação dos nós do heap de intercalação.
+38: `refaz_heap` para os nós de intercalação.
+39: `constroi_heap` para os nós de intercalação.
+40: Declara uma passada de intercalação: das fitas de entrada para as de saída.
+44: Declara a função que lê o relógio (usada para medir o tempo nos três métodos).
+46: Declara a função principal do método 1, chamada pelo `main.c`.
+48: Fecha a guarda de inclusão.

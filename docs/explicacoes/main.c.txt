@@ -1,0 +1,105 @@
+= Ponto de entrada do programa. Lê e valida os argumentos da linha de comando (`ordena <método> <quantidade> <situação> [-P]`), prepara o arquivo que será ordenado, chama o método escolhido e imprime o quadro com as métricas pedidas no enunciado.
+18: Biblioteca padrão de entrada e saída: `printf`, `fprintf`, `fopen`, `fread`, `fwrite`...
+19: Biblioteca padrão geral: `strtol` (converter texto em número), entre outras.
+20: Funções de string: `strcmp` (comparar textos), usada para reconhecer o `-P`.
+21: Dá acesso à variável `errno`, que o `strtol` usa para avisar quando o número é grande demais.
+22: Inclui o tipo `Registro`.
+23: Inclui as funções e contadores do Quicksort externo (método 3) e `prepararSituacao`.
+24: Inclui o método 1 e a struct `Metricas`.
+25: Inclui o método 2.
+26: Inclui a preparação dos arquivos base (`garantirArquivosBase`, `contarRegistros`).
+29: Nome do arquivo de trabalho: a cópia dos n registros que serão ordenados.
+31: Função auxiliar que devolve o nome de um método para mostrar no quadro de resultados. `static` quer dizer que ela só é visível dentro deste arquivo.
+32-34: Operador ternário encadeado (`condição ? a : b`): se `m` for 1 devolve o primeiro texto, se for 2 o segundo, senão o terceiro.
+37: Mesma ideia, agora para o nome da situação inicial do arquivo.
+38-40: Ternário encadeado: 1 ascendente, 2 descendente, 3 aleatório.
+44: Função que mostra como usar o programa. O enunciado exige que "toda mensagem de orientação e de erro seja tratada", e esta é a mensagem de orientação.
+45-53: Um único `fprintf` para a saída de erro (`stderr`). Em C, textos entre aspas colocados lado a lado são emendados em um só. Os dois `%s` são trocados pelo nome do programa (`prog`).
+57: Converte um texto (como `"2000"`) em número e confere se está entre `min` e `max`. Devolve 1 se deu certo e guarda o número em `*valor`; devolve 0 se o texto não é um número válido.
+58: `fim` vai apontar para o primeiro caractere que o `strtol` não conseguiu converter.
+59: Zera `errno` antes da conversão para saber, depois, se foi o `strtol` que acusou erro.
+60: `strtol` converte o texto em `long` na base 10.
+61: Rejeita o texto se: houve estouro (`errno`), nada foi convertido (`fim == txt`), sobrou lixo depois do número (como em `"12abc"`), ou o valor está fora do intervalo.
+62: Tudo certo: devolve o número pelo ponteiro.
+63: Retorna 1 (sucesso).
+66-68: Função que imprime o quadro final de resultados. Recebe o método, a quantidade, a situação e as quatro métricas.
+69-71: Imprime o cabeçalho do quadro.
+72: Mostra o número e o nome do método (usando `nomeMetodo`).
+73: Mostra n, a quantidade de registros ordenados.
+74: Mostra a situação inicial do arquivo.
+75: Linha separadora.
+76: Total de transferências de leitura (registros trazidos da memória externa para a interna). `%lld` imprime um `long long`.
+77: Total de transferências de escrita (registros gravados da memória interna na externa).
+78: Total de comparações entre notas.
+79: Tempo de execução em segundos, com 6 casas decimais.
+80: Linha de fechamento do quadro.
+84: Mostra na tela todos os registros de um arquivo binário. Usada pelo `-P` no método 3 para mostrar os dados de entrada.
+85: Abre o arquivo para leitura binária (`"rb"`).
+86: Se não abriu (`f` é `NULL`)...
+87: ...mostra a mensagem de erro...
+88: ...e sai da função sem imprimir nada.
+90: Variável que recebe um registro por vez.
+91: Imprime o título passado (por exemplo "Dados de entrada").
+92: Lê um registro por vez até o fim do arquivo (`fread` devolve 1 enquanto conseguir ler).
+93: Imprime o registro no mesmo formato do PROVAO.TXT: `%08ld` completa a inscrição com zeros à esquerda, `%5.1f` mostra a nota com uma casa decimal, `%-50s` alinha o texto à esquerda em 50 colunas.
+94: Fecha o arquivo.
+98: Executa o método 3 (Quicksort externo). Diferente dos métodos 1 e 2, que ficam em seus próprios arquivos, a "casca" do método 3 está aqui no `main.c`.
+99: Com `-P`, mostra os dados de entrada antes de ordenar (fora da medição de tempo).
+101-103: Abre o **mesmo arquivo três vezes**, em modo leitura e escrita binária (`"r+b"`). O Quicksort externo precisa de três "cabeças" independentes no arquivo: leitura inferior (Li), escrita inferior (Ei) e leitura/escrita superior (LEs).
+104: Se alguma das três aberturas falhou...
+105: ...mostra o erro...
+106-108: ...fecha as que chegaram a abrir (para não deixar arquivos abertos)...
+109: ...e devolve -1 (erro).
+113: Zera os contadores globais do Quicksort, porque eles também são incrementados quando o programa gera `crescente.bin` na primeira execução.
+114: Marca o instante de início da ordenação.
+115: Chama o Quicksort externo para ordenar as posições 1 a n do arquivo.
+116-118: Fecha os três ponteiros, garantindo que tudo foi gravado no disco.
+119: Tempo gasto = agora menos o início.
+121-123: Copia os contadores globais do Quicksort para a struct `Metricas`, que é o formato comum aos três métodos.
+125: Com `-P`, escreve o título antes de mostrar o resultado.
+126: Converte o arquivo binário ordenado em texto (`resultado_metodo3.txt`) e, com `-P`, mostra na tela.
+129: Função principal. `argc` é quantos argumentos vieram na linha de comando (contando o nome do programa) e `argv` é o vetor com esses textos.
+130: O programa precisa de 3 argumentos obrigatórios e 1 opcional, então `argc` tem que ser 4 ou 5.
+131: Mensagem de erro específica...
+132: ...seguida das instruções de uso...
+133: ...e termina com código 1 (convenção para "deu erro").
+136: Variáveis que vão receber os três números convertidos.
+137: Por padrão não imprime os dados na tela (sem `-P`).
+139: Converte o primeiro argumento (o método) e exige que esteja entre 1 e 3.
+140: Se não for válido, mostra o que foi digitado e o que era esperado.
+141: Mostra o uso.
+142: Termina com erro.
+144: Converte a quantidade: precisa ser um inteiro positivo (o limite real, o total de alunos, é conferido mais adiante).
+145: Mensagem de quantidade inválida (por exemplo `abc` ou `0`).
+146: Mostra o uso.
+147: Termina com erro.
+149: Converte a situação: 1, 2 ou 3.
+150: Mensagem de situação inválida.
+151: Mostra o uso.
+152: Termina com erro.
+154: Se veio um quarto argumento...
+155: ...ele precisa ser `-P` (aceita também `-p`). Se for, liga a impressão na tela.
+156: Senão (qualquer outro texto)...
+157: ...avisa que o argumento é desconhecido...
+158: ...mostra o uso...
+159: ...e termina com erro.
+164: Na primeira execução, gera os três arquivos binários base a partir do PROVAO.TXT. Se der erro (por exemplo, PROVAO.TXT ausente), termina.
+166: Conta quantos alunos existem no arquivo base (471.705).
+167: Se o arquivo estiver vazio ou não puder ser lido...
+168: ...mostra o erro...
+169: ...e termina.
+171: Não dá para ordenar mais alunos do que existem.
+172-173: Mensagem mostrando o pedido e o máximo possível.
+174: Termina com erro.
+178: Copia os n primeiros registros da situação escolhida (crescente, decrescente ou original) para `provaoOrdenar.dat`. É esse arquivo que será ordenado.
+180: Cria a struct de métricas com tudo zerado.
+181: Vai guardar se a ordenação deu certo (0) ou não (-1).
+182: Método 1: intercalação balanceada com 2f fitas.
+183: Método 2: intercalação balanceada com f+1 fitas.
+184: Método 3: Quicksort externo.
+186: Se o método devolveu erro...
+187: ...avisa...
+188: ...e termina com código 1.
+191-193: Imprime o quadro de resultados com as quatro métricas.
+194: Diz onde ficou o arquivo ordenado.
+195: Termina com sucesso (código 0).

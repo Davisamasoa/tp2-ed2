@@ -1,0 +1,29 @@
+= Cabeçalho do **método 3** (Quicksort externo). Define a "área" (a memória interna de 10 registros que funciona como pivô), os contadores e declara as funções.
+1-2: Guarda de inclusão.
+4: `stdio.h` para o tipo `FILE`.
+6: Tamanho da área de memória interna do Quicksort externo: 10 registros, como pede o enunciado.
+7: Constante para "verdadeiro" (C antigo não tinha tipo `bool`).
+8: Constante para "falso".
+10: Inclui `TipoRegistro`.
+12: Struct da área: a memória interna do Quicksort.
+13: Vetor de até 10 registros, sempre mantido **ordenado por nota**.
+14: Quantos registros estão na área agora.
+15: Fecha a struct, com o nome `TipoArea`.
+17: Declara o contador global de leituras (`extern` = a variável existe de verdade em `quicksort.c`; aqui só é anunciada).
+18: Contador global de escritas.
+19: Contador global de comparações.
+21: Declara a função que esvazia a área.
+22: Declara a função que diz quantos registros há na área.
+23: Declara a inserção ordenada na área.
+24: Declara a retirada do menor registro da área.
+25: Declara a retirada do maior registro da área.
+27: Declara a leitura pelo lado de cima (superior) do subarquivo.
+28: Declara a leitura pelo lado de baixo (inferior).
+29: Declara a escrita no lado de cima.
+30: Declara a escrita no lado de baixo.
+32: Declara a partição: o coração do algoritmo.
+33: Declara o Quicksort externo recursivo.
+35: Declara a cópia dos n registros da situação escolhida para o arquivo de trabalho.
+36: Declara uma função de impressão de um arquivo binário (não usada pelo programa final; o `-P` usa outras funções).
+38-39: Declarações antigas de um Quicksort em memória que não existe mais no código. Como nunca são chamadas, não causam erro; poderiam ser removidas.
+41: Fecha a guarda de inclusão.

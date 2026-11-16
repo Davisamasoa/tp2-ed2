@@ -1,0 +1,10 @@
+= Cabeçalho do método 2 (intercalação balanceada com f+1 fitas). Define os parâmetros pedidos no enunciado: f = 19 fitas de entrada, 1 de saída e memória de 19 registros.
+1-2: Guarda de inclusão.
+4: Inclui `stdio.h` para o tipo `FILE` usado nas declarações.
+5: Inclui a definição do `Registro`.
+6: Inclui o cabeçalho do método 1 para reaproveitar a struct `Metricas`, as funções de heap (`constroi_heap`, `refaz_heap`), a leitura contada (`ler_registro_binario`) e a gravação do resultado (`finaliza_saida`).
+14-16: Se ninguém definiu `F_CAMINHOS` antes (por exemplo com `-DF_CAMINHOS=...` na compilação), define como 19: é o **f**, o número de fitas de entrada. O `#ifndef` permite testar outros valores sem mexer no código.
+17-19: Mesma ideia para o tamanho da memória interna do método 2: 19 registros.
+20: Total de fitas: f + 1 = 20 (19 de entrada e 1 de saída).
+23: Declara a função principal do método 2, chamada pelo `main.c`.
+25: Fecha a guarda de inclusão.
