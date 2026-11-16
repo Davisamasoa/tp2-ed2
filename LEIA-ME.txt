@@ -1,0 +1,46 @@
+TP2 (BCC203) - Ordenacao Externa: metodos 1, 2 e 3 em um unico programa
+
+COMO USAR
+  1. Deixe o PROVAO.TXT nesta pasta (tambem aceita provao.txt).
+  2. make
+  3. ./ordena <metodo> <quantidade> <situacao> [-P]
+       metodo     : 1 (intercalacao balanceada 2f fitas)
+                    2 (intercalacao balanceada f+1 fitas)
+                    3 (Quicksort Externo)
+       quantidade : 1 a 471705
+       situacao   : 1 (ascendente), 2 (descendente), 3 (aleatorio)
+       -P         : mostra na tela os dados de entrada e o resultado
+     Ex.: ./ordena 1 20000 3      ./ordena 2 471705 2      ./ordena 3 2000 1 -P
+
+  Na 1a execucao o programa gera sozinho binario.bin, crescente.bin e decrescente.bin
+  (alguns segundos). O resultado ordenado vai para resultado_metodo<N>.txt.
+  Toda execucao mostra: leituras, escritas, comparacoes entre notas e tempo.
+  make clean / make cleanall apagam os arquivos gerados.
+
+EXPERIMENTOS
+  ./experimentos.sh roda os 54 experimentos (3 metodos x 6 quantidades x 3 situacoes)
+  e grava resultados.csv.
+
+PARAMETROS DO ENUNCIADO (TP02)
+  Metodo 1: memoria de 10 registros; 20 fitas (10 de entrada + 10 de saida) -> int2f.h  (TAM_MEMORIA, NUM_FITAS_*)
+  Metodo 2: memoria de 19 registros; 20 fitas (19 de entrada +  1 de saida) -> int_f1.h (TAM_MEMORIA_F1, F_CAMINHOS)
+  Metodo 3: area de 10 registros                                            -> quicksort.h (TAMAREA)
+
+COMO AS METRICAS SAO CONTADAS
+  Leitura  : cada registro transferido do arquivo/fita para a memoria interna.
+  Escrita  : cada registro transferido da memoria interna para o arquivo/fita.
+  Comparacoes: so comparacoes entre notas (campo de ordenacao).
+  Tempo    : tempo de relogio (clock_gettime) do inicio ao fim da ordenacao. Nao inclui
+             a copia dos n registros para o arquivo de trabalho, a exibicao do -P nem a
+             gravacao do resultado_metodo<N>.txt.
+
+ARQUIVOS
+  main.c                 linha de comando, validacao dos argumentos e quadro de resultados
+  preparo.c/.h           gera binario.bin (do PROVAO.TXT), crescente.bin e decrescente.bin
+  registro.h             struct Registro unica (104 bytes). O ultimo campo e union:
+                         "congelado" (metodo 1) = "marcado" (metodo 2)
+  int2f.c/.h             metodo 1: selecao por substituicao + intercalacao 10 fitas -> 10 fitas
+  int_f1.c/.h            metodo 2: selecao por substituicao + intercalacao 19 fitas -> 1 fita,
+                         com redistribuicao dos blocos nas 19 fitas a cada passada
+  quicksort.c/.h         metodo 3: Quicksort Externo com area de 10 registros
+  experimentos.sh        roda todos os experimentos e gera resultados.csv

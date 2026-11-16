@@ -1,0 +1,17 @@
+# Compilacao
+*.o
+ordena
+pesquisa
+
+# Base de dados (47 MB, disponivel na pagina da disciplina)
+PROVAO.TXT
+provao.txt
+
+# Arquivos gerados pelo programa
+*.bin
+*.dat
+resultado_metodo*.txt
+
+# Sistema e anotacoes locais
+.DS_Store
+PROGRESS.md
